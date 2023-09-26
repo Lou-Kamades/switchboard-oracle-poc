@@ -1,12 +1,18 @@
 # syntax=docker/dockerfile:1.4
 FROM switchboardlabs/sgx-function AS builder
 
+WORKDIR /home/root/
+RUN mkdir programs
+RUN mkdir programs/fat-oracle
+RUN mkdir programs/fat-oracle/src
+RUN ls > directory_contents.txt
+RUN cat directory_contents.txt
+COPY ./programs/fat-oracle/Cargo.toml  ./programs/fat-oracle
+COPY ./programs/fat-oracle/src  ./programs/fat-oracle/src
+
 WORKDIR /home/root/switchboard-function
-COPY ./Cargo.toml ./Cargo.lock ./
-COPY ./src ./src/
-# May need to pre build rust? 
-# There are issues with the anchor program Cargo dependency if you use path in the Cargo.toml
-#COPY ./target/release /sgx/app
+COPY ./function/Cargo.toml ./function/Cargo.lock ./
+COPY ./function/src ./src/
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry,id=${TARGETPLATFORM} \
     --mount=type=cache,target=target,id=${TARGETPLATFORM} \
