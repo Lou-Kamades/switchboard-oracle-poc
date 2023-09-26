@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "programs/fat-oracle",
-    "function"
+    "programs/fat-oracle"
 ]
 
 [profile.release]
