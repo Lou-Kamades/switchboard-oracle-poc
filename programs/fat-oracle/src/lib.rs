@@ -12,7 +12,7 @@ pub mod fat_oracle {
         Ok(())
     }
 
-    pub fn save_data(ctx: Context<UpdateOracle>) -> anchor_lang::Result<()> {
+    pub fn update_oracle(ctx: Context<UpdateOracle>) -> anchor_lang::Result<()> {
         let oracle = &mut ctx.accounts.oracle.load_init()?;
         oracle.price += 1;
         Ok(())

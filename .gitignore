@@ -6,3 +6,7 @@ target
 node_modules
 test-ledger
 .yarn
+
+node_modules/
+dist/
+.env
