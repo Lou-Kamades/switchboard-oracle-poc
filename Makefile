@@ -5,7 +5,8 @@
 .PHONY: build clean publish test
 
 # Variables
-DOCKER_IMAGE_NAME ?= gallynaut/solana-simple-randomness-function
+DOCKER_IMAGE_NAME=loukamades/poc-switchboard-oracle
+DOCKERHUB_IMAGE_NAME=loukamades/poc-switchboard-oracle
 
 check_docker_env:
 ifeq ($(strip $(DOCKERHUB_IMAGE_NAME)),)
@@ -19,12 +20,12 @@ all: anchor_sync build
 
 anchor_sync :; anchor keys sync
 anchor_build :; anchor build
-anchor_publish:; make -j 2 simple-flip-deploy callback-flip-deploy
+anchor_publish:; make oracle_deploy
 
 docker_build: 
-	docker buildx build --platform linux/amd64 --pull -f ./function/Dockerfile -t ${DOCKER_IMAGE_NAME} --load .
+	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile -t ${DOCKER_IMAGE_NAME} --load .
 docker_publish: 
-	docker buildx build --platform linux/amd64 --pull -f ./function/Dockerfile -t ${DOCKER_IMAGE_NAME} --push .
+	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile -t ${DOCKER_IMAGE_NAME} --push .
 
 build: anchor_build docker_build measurement
 
@@ -34,24 +35,16 @@ publish: anchor_publish docker_publish measurement
 
 measurement: check_docker_env
 	docker pull --platform=linux/amd64 -q ${DOCKERHUB_IMAGE_NAME}:latest
-	@docker run -d --platform=linux/amd64 -q --name=my-switchboard-function ${DOCKERHUB_IMAGE_NAME}:latest
-	@docker cp my-switchboard-function:/measurement.txt ./measurement.txt
-	@echo -n 'MrEnclve: '
+	@docker run -d --platform=linux/amd64 -q --name=poc-switchboard-oracle ${DOCKERHUB_IMAGE_NAME}:latest
+	@docker cp poc-switchboard-oracle:/measurement.txt ./measurement.txt
+	@echo -n 'MrEnclave: '
 	@cat measurement.txt
-	@docker stop my-switchboard-function > /dev/null
-	@docker rm my-switchboard-function > /dev/null
+	@docker stop poc-switchboard-oracle > /dev/null
+	@docker rm poc-switchboard-oracle > /dev/null
 
-simple-flip:
-	anchor run simple-flip
-simple-flip-deploy:
-	anchor build -p super_simple_randomness
-	anchor deploy --provider.cluster devnet -p super_simple_randomness
-
-callback-flip:
-	anchor run callback-flip
-callback-flip-deploy:
-	anchor build -p switchboard_randomness_callback
-	anchor deploy --provider.cluster devnet -p switchboard_randomness_callback
+oracle_deploy:
+	anchor build -p fat_oracle
+	anchor deploy --provider.cluster devnet -p fat_oracle
 
 # Task to clean up the compiled rust application
 clean:
