@@ -1,44 +1,34 @@
-import { Program } from "@coral-xyz/anchor";
-import idl from "./idl.json";
-import { FunctionRunner } from "@switchboard-xyz/solana.js";
+import { FunctionRunner } from "@switchboard-xyz/solana.js/runner";
 import { FatOracle } from "./types";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { UpdateOracleAccounts, updateOracle } from "./sdk/instructions";
+
+const PROGRAM_ID = new PublicKey("835WRKhFSAppy7p4QnFBkXJ6Mec3hAx3Jw2X15JKccyi")
 
 async function main() {
-  const runner = new FunctionRunner();
-
-  const program: Program<FatOracle> = new Program(
-    JSON.parse(JSON.stringify(idl)),
-    "3NKUtPKboaQN4MwY3nyULBesFaW7hHsXFrBTVjbn2nBr",
-    runner.provider
-  );
+  const runner = await FunctionRunner.create();
 
   const refreshOraclesIxn: TransactionInstruction = await generateUpdateIx(
     runner,
-    program
   );
 
   await runner.emit([refreshOraclesIxn]);
 }
 
-// run switchboard function
 main();
-
 
 
 async function generateUpdateIx(
     runner: FunctionRunner,
-    program: Program<FatOracle>
   ): Promise<TransactionInstruction> {
-    return await program.methods
-      .updateOracle()
-      .accounts({
-        switchboardFunction: runner.functionKey,
-        oracle: PublicKey.findProgramAddressSync(
-          [Buffer.from("oracle")],
-          program.programId
-        )[0],
-        enclaveSigner: runner.signer,
-      })
-      .instruction();
+    const [oracle, bump] = PublicKey.findProgramAddressSync([Buffer.from("oracle")], PROGRAM_ID)
+
+    const accounts: UpdateOracleAccounts = {
+      oracle,
+      function: runner.functionKey,
+      enclaveSigner: runner.signer
+    }
+
+    const ix = updateOracle(accounts)
+    return ix
   }

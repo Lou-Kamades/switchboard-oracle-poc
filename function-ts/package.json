@@ -1,31 +1,35 @@
 {
-    "name": "poc_oracle",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "scripts": {
-      "build": "rimraf dist; npm run cp:types && npm run build:types && esbuild --bundle ./src/index.ts --platform=node --target=node20 --outfile=dist/index.js --minify --sourcemap=inline",
-      "test": "echo \"Error: no test specified\" && exit 1",
-      "build:types": "anchor-client-gen ../target/idl/fat_oracle.json ./src/sdk",
-      "cp:types": "cp ../target/types/fat_oracle.ts ./src/types.ts && cp ../target/idl/fat_oracle.json ./src/idl.json"
-    },
-    "dependencies": {
-      "@coral-xyz/anchor": "^0.28.0",
-      "@solana/web3.js": "^1.78.5",
-      "@switchboard-xyz/solana.js": "^2.8.0-beta.5"
-    },
-    "devDependencies": {
-      "@types/node": "^20.6.5",
-      "anchor-client-gen": "^0.28.1",
-      "esbuild": "^0.19.3",
-      "rimraf": "^5.0.1",
-      "tsx": "^3.13.0",
-      "typescript": "^5.2.2"
-    },
-    "engines": {
-      "node": ">=18.0.0"
-    }
+  "name": "poc_oracle",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "build": "rimraf dist; npm run cp:types && npm run build:types && esbuild --bundle ./src/index.ts --platform=node --target=node20 --outfile=dist/index.js --minify --sourcemap=inline",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "types": "yarn build:types && yarn cp:types",
+    "build:types": "anchor-client-gen ../target/idl/fat_oracle.json ./src/sdk",
+    "cp:types": "cp ../target/types/fat_oracle.ts ./src/types.ts && cp ../target/idl/fat_oracle.json ./src/idl.json",
+    "setup": "ts-node scripts/setup.ts",
+    "deploy:function": "ts-node scripts/function-setup.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.28.0",
+    "@solana/web3.js": "^1.78.5",
+    "@switchboard-xyz/solana.js": "^3.0.0-beta.8",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.6.5",
+    "anchor-client-gen": "^0.28.1",
+    "esbuild": "^0.19.3",
+    "rimraf": "^5.0.1",
+    "tsx": "^3.13.0",
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
+}

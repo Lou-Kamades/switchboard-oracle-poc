@@ -24,7 +24,7 @@ export type FatOracle = {
       "args": []
     },
     {
-      "name": "saveData",
+      "name": "updateOracle",
       "accounts": [
         {
           "name": "function",
@@ -95,7 +95,7 @@ export const IDL: FatOracle = {
       "args": []
     },
     {
-      "name": "saveData",
+      "name": "updateOracle",
       "accounts": [
         {
           "name": "function",

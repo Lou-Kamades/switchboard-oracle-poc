@@ -3,14 +3,14 @@ import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
 import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
 import { PROGRAM_ID } from "../programId"
 
-export interface SaveDataAccounts {
+export interface UpdateOracleAccounts {
   function: PublicKey
   oracle: PublicKey
   enclaveSigner: PublicKey
 }
 
-export function saveData(
-  accounts: SaveDataAccounts,
+export function updateOracle(
+  accounts: UpdateOracleAccounts,
   programId: PublicKey = PROGRAM_ID
 ) {
   const keys: Array<AccountMeta> = [
@@ -18,7 +18,7 @@ export function saveData(
     { pubkey: accounts.oracle, isSigner: false, isWritable: true },
     { pubkey: accounts.enclaveSigner, isSigner: true, isWritable: false },
   ]
-  const identifier = Buffer.from([227, 228, 223, 152, 188, 62, 31, 151])
+  const identifier = Buffer.from([112, 41, 209, 18, 248, 226, 252, 188])
   const data = identifier
   const ix = new TransactionInstruction({ keys, programId, data })
   return ix

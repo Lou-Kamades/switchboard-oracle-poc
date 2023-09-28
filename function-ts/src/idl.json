@@ -24,7 +24,7 @@
       "args": []
     },
     {
-      "name": "saveData",
+      "name": "updateOracle",
       "accounts": [
         {
           "name": "function",
