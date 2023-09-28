@@ -1,6 +1,6 @@
 import { Program } from "@coral-xyz/anchor";
 import idl from "./idl.json";
-import { FunctionRunner } from "@switchboard-xyz/solana.js/functions";
+import { FunctionRunner } from "@switchboard-xyz/solana.js";
 import { FatOracle } from "./types";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 
