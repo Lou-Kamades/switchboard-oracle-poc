@@ -5,8 +5,6 @@ WORKDIR /home/root/
 RUN mkdir programs
 RUN mkdir programs/fat-oracle
 RUN mkdir programs/fat-oracle/src
-RUN ls > directory_contents.txt
-RUN cat directory_contents.txt
 COPY ./programs/fat-oracle/Cargo.toml  ./programs/fat-oracle
 COPY ./programs/fat-oracle/src  ./programs/fat-oracle/src
 

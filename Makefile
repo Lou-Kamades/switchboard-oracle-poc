@@ -22,16 +22,17 @@ anchor_sync :; anchor keys sync
 anchor_build :; anchor build
 anchor_publish:; make oracle_deploy
 
-docker_build: 
-	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile -t ${DOCKER_IMAGE_NAME} --load .
-docker_publish: 
-	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile -t ${DOCKER_IMAGE_NAME} --push .
+docker_build_rust: 
+	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile.rust -t ${DOCKER_IMAGE_NAME} --load .
+docker_publish_rust: 
+	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile.rust -t ${DOCKER_IMAGE_NAME} --push .
 
-build: anchor_build docker_build measurement
+docker_build_ts: 
+	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile.ts -t ${DOCKER_IMAGE_NAME} --load .
+docker_publish_ts: 
+	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile.ts -t ${DOCKER_IMAGE_NAME} --push .
 
-dev: dev_docker_build measurement
-
-publish: anchor_publish docker_publish measurement
+# anchor, docker, measurement
 
 measurement: check_docker_env
 	docker pull --platform=linux/amd64 -q ${DOCKERHUB_IMAGE_NAME}:latest
@@ -44,7 +45,7 @@ measurement: check_docker_env
 
 oracle_deploy:
 	anchor build -p fat_oracle
-	anchor deploy --provider.cluster devnet -p fat_oracle
+	anchor deploy --provider.cluster devnet -p fat_oracle --program-keypair ${KEYPAIR_PATH}
 
 # Task to clean up the compiled rust application
 clean:
