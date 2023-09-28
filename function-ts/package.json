@@ -12,8 +12,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:types": "anchor-client-gen ../target/idl/fat_oracle.json ./src/sdk",
     "cp:types": "cp ../target/types/fat_oracle.ts ./src/types.ts && cp ../target/idl/fat_oracle.json ./src/idl.json",
-    "setup": "ts-node scripts/setup.ts",
-    "deploy:function": "ts-node scripts/function-setup.ts"
+    "deploy:function": "ts-node scripts/functionDeploy.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.0",
