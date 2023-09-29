@@ -66,3 +66,35 @@ pub fn ix_discriminator(name: &str) -> [u8; 8] {
     );
     sighash
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use switchboard_solana::FunctionRunner;
+
+    use crate::{perform, create_update_ix};
+
+    #[test]
+    fn mock() {
+
+        std::env::set_var("CLUSTER", "devnet");
+        std::env::set_var("function_key", "ACxSMc6tPw7ordiUk2RfRWU362r8qe1BBXUfxoxqGBjC");
+        std::env::set_var("payer", "9UsqrFbrsKSo6CVApeXSr6BXHFQV9YJMLUyb7rR783gu");
+        std::env::set_var("verifier", "A2FM9UNDG39deByDRgdLgmKxyTx1DCWUX1RfMCCN3gD3"); // ??
+        std::env::set_var("reward_receiver", "DV9cTxjFYxCAKRhryFZEKhNJFFGCx7tzDqVF5cwanZCV"); // ??
+        // println!("{}", &std::env::var("CLUSTER").unwrap());
+
+        let runner = FunctionRunner::from_env(None).unwrap();
+        println!("{}", runner);
+
+        if runner.assert_mr_enclave().is_err() {
+            panic!("199");
+        }
+
+        let ix = create_update_ix(&runner);
+
+        println!("{:?}", ix);
+
+    }
+}
