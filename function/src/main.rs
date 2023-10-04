@@ -2,18 +2,22 @@ pub use switchboard_solana::prelude::*;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+use switchboard_solana::get_ixn_discriminator;
+
 pub async fn perform(runner: &FunctionRunner) -> Result<()> {
-    msg!("function runner loaded!");
+    println!("function runner loaded!");
 
     // Then, write your own Rust logic and build a Vec of instructions.
-    // Should  be under 700 bytes after serialization
-    let ix = create_update_ix(runner);
+    // Should be under 700 bytes after serialization
+    let ix = create_ping_ix(runner);
 
-    msg!("sending transaction");
+    println!("emitting");
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
     // The functionRunner oracle will use the last outputted word to stdout as the serialized result. This is what gets executed on-chain.
     runner.emit(vec![ix]).await?;
+
+    println!("emitted");
     Ok(())
 }
 
@@ -30,6 +34,21 @@ async fn main() -> Result<()> {
         runner.emit_error(1).await?;
     }
     Ok(())
+}
+
+pub fn create_ping_ix(runner: &FunctionRunner) -> Instruction {
+    println!("create_ping_ix");
+      Instruction {
+        program_id: fat_oracle::ID,
+        accounts: vec![
+            AccountMeta {
+                pubkey: runner.signer,
+                is_signer: true,
+                is_writable: false,
+            },
+        ],
+        data: get_ixn_discriminator("ping").to_vec()
+        }
 }
 
 pub fn create_update_ix(runner: &FunctionRunner) -> Instruction {
@@ -54,20 +73,9 @@ pub fn create_update_ix(runner: &FunctionRunner) -> Instruction {
                 is_writable: false,
             },
         ],
-        data: ix_discriminator("update_oracle").to_vec()
+        data: get_ixn_discriminator("update_oracle").to_vec()
     }
 }
-
-pub fn ix_discriminator(name: &str) -> [u8; 8] {
-    let preimage = format!("global:{}", name);
-    let mut sighash = [0u8; 8];
-    sighash.copy_from_slice(
-        &anchor_lang::solana_program::hash::hash(preimage.as_bytes()).to_bytes()[..8],
-    );
-    sighash
-}
-
-
 
 #[cfg(test)]
 mod tests {
@@ -79,7 +87,7 @@ mod tests {
     fn mock() {
 
         std::env::set_var("CLUSTER", "devnet");
-        std::env::set_var("function_key", "ACxSMc6tPw7ordiUk2RfRWU362r8qe1BBXUfxoxqGBjC");
+        std::env::set_var("function_key", "J4NqiGfeepFbbvNr6vxx4YMfTZ3DxtztF15UefaV4vkb");
         std::env::set_var("payer", "9UsqrFbrsKSo6CVApeXSr6BXHFQV9YJMLUyb7rR783gu");
         std::env::set_var("verifier", "A2FM9UNDG39deByDRgdLgmKxyTx1DCWUX1RfMCCN3gD3"); // ??
         std::env::set_var("reward_receiver", "DV9cTxjFYxCAKRhryFZEKhNJFFGCx7tzDqVF5cwanZCV"); // ??

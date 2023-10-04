@@ -9,6 +9,12 @@ pub mod fat_oracle {
     pub fn initialize(ctx: Context<Initialize>) -> anchor_lang::Result<()> {
         let oracle = &mut ctx.accounts.oracle.load_init()?;
         oracle.bump = *ctx.bumps.get("oracle").unwrap();
+        oracle.price = 0;
+        Ok(())
+    }
+
+    pub fn ping(_ctx: Context<Ping>) -> anchor_lang::Result<()> {
+        msg!("ding dong");
         Ok(())
     }
 
@@ -37,16 +43,23 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
+pub struct Ping<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+}
+
+#[derive(Accounts)]
 pub struct UpdateOracle<'info> {
     // ... your required accounts to modify your program's state
     // We use this to derive and verify the functions enclave state
+        // We use this to verify the functions enclave state was verified successfully
     #[account(
         constraint =
-            function.load()?.validate(
-              &enclave_signer.to_account_info()
-            )?
+                switchboard_function.load()?.validate(
+                &enclave_signer.to_account_info()
+            )? @ OracleError::FunctionValidationFailed
     )]
-    pub function: AccountLoader<'info, FunctionAccountData>,
+    pub switchboard_function: AccountLoader<'info, FunctionAccountData>,
 
     #[account(
         mut,
@@ -56,6 +69,13 @@ pub struct UpdateOracle<'info> {
     pub oracle: AccountLoader<'info, OracleData>,
 
     pub enclave_signer: Signer<'info>,
+}
+
+#[error_code]
+#[derive(Eq, PartialEq)]
+pub enum OracleError {
+    #[msg("FunctionAccount was not validated successfully")]
+    FunctionValidationFailed,
 }
 
 

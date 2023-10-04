@@ -1,6 +1,9 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, } from "@coral-xyz/anchor";
 import { FatOracle } from "../target/types/fat_oracle";
+import { PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { InitializeAccounts, UpdateOracleAccounts, initialize, updateOracle } from "../function-ts/src/sdk/instructions";
+import { FunctionAccount } from "@switchboard-xyz/solana.js";
 
 describe("fat-oracle", () => {
   // Configure the client to use the local cluster.
@@ -9,8 +12,40 @@ describe("fat-oracle", () => {
   const program = anchor.workspace.FatOracle as Program<FatOracle>;
 
   it("Is initialized!", async () => {
-    // Add your test here.
-    const tx = await program.methods.initialize().rpc();
-    console.log("Your transaction signature", tx);
+    const provider = anchor.getProvider()
+    const tx = new Transaction()
+    const [oracle, bump] = PublicKey.findProgramAddressSync([Buffer.from("oracle")], program.programId)
+
+    const accounts: InitializeAccounts = {
+        oracle,
+        payer: provider.publicKey,
+        systemProgram: SystemProgram.programId
+    }
+
+    const ix = initialize(accounts)
+    tx.add(ix)
+
+    const sig = await provider.sendAndConfirm( tx, [], {skipPreflight: true})
+    console.log(sig)
   });
+
+  // it ("Can update oracle", async () => {
+
+  //   const provider = anchor.getProvider()
+  //   const tx = new Transaction()
+  //   const [oracle, bump] = PublicKey.findProgramAddressSync([Buffer.from("oracle")], program.programId)
+
+  //   const accounts: UpdateOracleAccounts = {
+  //       function: 
+  //       oracle,
+  //       enclaveSigner:
+  //   }
+
+  //   const ix = updateOracle(accounts)
+  //   tx.add(ix)
+
+  //   const sig = await provider.sendAndConfirm( tx, [], {skipPreflight: true})
+  //   console.log(sig)
+
+  // })
 });
