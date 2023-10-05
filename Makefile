@@ -5,8 +5,8 @@
 .PHONY: build clean publish test
 
 # Variables
-DOCKER_IMAGE_NAME=loukamades/poc-switchboard-oracle
-DOCKERHUB_IMAGE_NAME=loukamades/poc-switchboard-oracle
+DOCKER_IMAGE_NAME=loukamades/pong
+DOCKERHUB_IMAGE_NAME=loukamades/pong
 
 check_docker_env:
 ifeq ($(strip $(DOCKERHUB_IMAGE_NAME)),)

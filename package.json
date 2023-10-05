@@ -1,11 +1,15 @@
 {
     "scripts": {
         "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-        "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+        "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+        "deploy:function": "ts-node scripts/functionDeploy.ts"
     },
     "dependencies": {
         "@coral-xyz/anchor": "^0.28.0",
-        "@switchboard-xyz/solana.js": "^3.0.0-beta.8"
+        "@solana/web3.js": "^1.78.7",
+        "@switchboard-xyz/solana.js": "^3.0.0-beta.8",
+        "dotenv": "^16.3.1",
+        "ts-node": "^10.9.1"
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.0",

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("835WRKhFSAppy7p4QnFBkXJ6Mec3hAx3Jw2X15JKccyi");
+declare_id!("b36ENxZ8qYekipdAfqo7LRE1p98xy6cFNJQyM4o3sgy");
 
 #[program]
 pub mod fat_oracle {
@@ -18,8 +18,13 @@ pub mod fat_oracle {
         Ok(())
     }
 
+    pub fn pong(_ctx: Context<Pong>) -> anchor_lang::Result<()> {
+        msg!("cool");
+        Ok(())
+    }
+
     pub fn update_oracle(ctx: Context<UpdateOracle>) -> anchor_lang::Result<()> {
-        let oracle = &mut ctx.accounts.oracle.load_init()?;
+        let oracle = &mut ctx.accounts.oracle.load_mut()?;
         oracle.price += 1;
         Ok(())
     }
@@ -44,9 +49,22 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct Ping<'info> {
-    #[account(mut)]
+    #[account(
+        constraint =
+                switchboard_function.load()?.validate(
+                &enclave_signer.to_account_info()
+            )? @ OracleError::FunctionValidationFailed
+    )]
+    pub switchboard_function: AccountLoader<'info, FunctionAccountData>,
+
+    pub enclave_signer: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct Pong<'info> {
     pub signer: Signer<'info>,
 }
+
 
 #[derive(Accounts)]
 pub struct UpdateOracle<'info> {
