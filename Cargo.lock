@@ -1477,14 +1477,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6999dc1837253364c2ebb0704ba97994bd874e8f195d665c50b7548f6ea92764"
 
 [[package]]
-name = "fat-oracle"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "switchboard-solana",
-]
-
-[[package]]
 name = "feature-probe"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2440,6 +2432,14 @@ name = "openssl-probe"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
+
+[[package]]
+name = "oracle-poc"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "switchboard-solana",
+]
 
 [[package]]
 name = "os_str_bytes"

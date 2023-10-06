@@ -3,10 +3,10 @@ FROM switchboardlabs/sgx-function AS builder
 
 WORKDIR /home/root/
 RUN mkdir programs
-RUN mkdir programs/fat-oracle
-RUN mkdir programs/fat-oracle/src
-COPY ./programs/fat-oracle/Cargo.toml  ./programs/fat-oracle
-COPY ./programs/fat-oracle/src  ./programs/fat-oracle/src
+RUN mkdir programs/oracle-poc
+RUN mkdir programs/oracle-poc/src
+COPY ./programs/oracle-poc/Cargo.toml  ./programs/oracle-poc
+COPY ./programs/oracle-poc/src  ./programs/oracle-poc/src
 
 WORKDIR /home/root/switchboard-function
 COPY ./function/Cargo.toml ./function/Cargo.lock ./

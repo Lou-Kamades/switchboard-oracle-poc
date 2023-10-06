@@ -40,8 +40,8 @@ measurement: check_docker_org check_docker_name
 	@docker rm poc-switchboard-oracle > /dev/null
 
 oracle_deploy:
-	anchor build -p fat_oracle
-	anchor deploy --provider.cluster devnet -p fat_oracle --program-keypair ${ANCHOR_WALLET}
+	anchor build -p oracle_poc
+	anchor deploy --provider.cluster devnet -p oracle_poc --program-keypair ${ANCHOR_WALLET}
 
 # Task to clean up the compiled rust application
 clean:

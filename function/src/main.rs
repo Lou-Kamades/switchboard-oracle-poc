@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
 pub fn create_ping_ix(runner: &FunctionRunner) -> Instruction {
     println!("ping 2: electric boogaloo");
       Instruction {
-        program_id: fat_oracle::ID,
+        program_id: oracle_poc::ID,
         accounts: vec![
                 AccountMeta::new_readonly(runner.function, false),
                 // our enclave generated signer must sign to update our program
@@ -47,7 +47,7 @@ pub fn create_ping_ix(runner: &FunctionRunner) -> Instruction {
 pub fn create_pong_ix(runner: &FunctionRunner) -> Instruction {
     println!("pong ix");
       Instruction {
-        program_id: fat_oracle::ID,
+        program_id: oracle_poc::ID,
         accounts: vec![
                 AccountMeta::new_readonly(runner.signer, true),
         ],
@@ -56,10 +56,10 @@ pub fn create_pong_ix(runner: &FunctionRunner) -> Instruction {
 }
 
 pub fn create_update_ix(runner: &FunctionRunner) -> Instruction {
-    let (oracle_key , _) = Pubkey::find_program_address(&[b"oracle"], &fat_oracle::ID);
+    let (oracle_key , _) = Pubkey::find_program_address(&[b"oracle"], &oracle_poc::ID);
 
         Instruction {
-        program_id: fat_oracle::ID,
+        program_id: oracle_poc::ID,
         accounts: vec![
             AccountMeta {
                 pubkey: runner.function,

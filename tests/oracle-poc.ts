@@ -1,11 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, } from "@coral-xyz/anchor";
-import { FatOracle } from "../target/types/fat_oracle";
+import { FatOracle } from "../target/types/oracle_poc";
 import { PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { InitializeAccounts, UpdateOracleAccounts, initialize, updateOracle } from "../function-ts/src/sdk/instructions";
 import { FunctionAccount } from "@switchboard-xyz/solana.js";
 
-describe("fat-oracle", () => {
+describe("oracle-poc", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 

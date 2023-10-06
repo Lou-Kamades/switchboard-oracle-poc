@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 declare_id!("b36ENxZ8qYekipdAfqo7LRE1p98xy6cFNJQyM4o3sgy");
 
 #[program]
-pub mod fat_oracle {
+pub mod oracle_poc {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> anchor_lang::Result<()> {
