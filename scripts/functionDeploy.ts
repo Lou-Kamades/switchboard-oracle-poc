@@ -21,9 +21,9 @@ async function main() {
    // Create the instructions to initialize our Switchboard Function
   const [functionAccount, functionInit] =
   await attestationQueueAccount.createFunctionInstruction(payer.publicKey, {
-    name: "pong",
+    name: `${process.env.DOCKERHUB_CONTAINER_NAME}`,
     schedule: "15 * * * * *",
-    container: "loukamades/pong",
+    container: `${process.env.DOCKERHUB_ORGANIZATION}/${process.env.DOCKERHUB_CONTAINER_NAME}`,
     containerRegistry: "dockerhub",
     version: "latest"
   });

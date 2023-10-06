@@ -1,5 +1,12 @@
-The smart contract can be built and deployed normally using Anchor. Currently there is a devnet deployment at 835WRKhFSAppy7p4QnFBkXJ6Mec3hAx3Jw2X15JKccyi that the switchboard functions reference.
+The smart contract can be built and deployed normally using Anchor. Currently there is a devnet deployment at b36ENxZ8qYekipdAfqo7LRE1p98xy6cFNJQyM4o3sgy that the switchboard functions reference.
 
-To publish a rust switchboard function run `make docker_publish_rust`. If deploying a typescript function, make sure to run `yarn build:full` inside the `function-ts` folder, then run either `make docker_publish_ts`. Both of these commands create and publish docker image with our switchboard function. Make sure to change the IMAGE_NAME variables if you inted to publish a different image. 
+To deploy the function follow these steps
+
+1. Change the DOCKERHUB_CONTAINER_NAME variable to ensure that a fresh container is used
+2. `make docker_build_rust`
+3. `make docker_publish_rust`
+4. `yarn deploy:function`
+5. Go to the switchboard website and fund the function, make sure that the correct measurement is included (run `make measurement` to check)
+
 
 After publishing the docker image, run `make measurement` to generate an MrEnclave HexString. Make sure the `functionDeploy.ts` file has an up to date MrEnclave and run the file to finish deploying the switchboard function.
