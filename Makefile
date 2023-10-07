@@ -30,6 +30,9 @@ docker_build_rust: check_docker_org check_docker_name
 docker_publish_rust: check_docker_org check_docker_name
 	docker buildx build --platform linux/amd64 --pull -f ./Dockerfile.rust -t ${DOCKERHUB_ORGANIZATION}/${DOCKERHUB_CONTAINER_NAME} --push .
 
+publish_function: docker_build_rust docker_publish_rust measurement
+	yarn function:deploy
+
 measurement: check_docker_org check_docker_name
 	docker pull --platform=linux/amd64 -q ${DOCKERHUB_ORGANIZATION}/${DOCKERHUB_CONTAINER_NAME}:latest
 	@docker run -d --platform=linux/amd64 -q --name=poc-switchboard-oracle  ${DOCKERHUB_ORGANIZATION}/${DOCKERHUB_CONTAINER_NAME}:latest

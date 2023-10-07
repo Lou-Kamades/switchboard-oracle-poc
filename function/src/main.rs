@@ -8,7 +8,7 @@ pub async fn perform(runner: &FunctionRunner) -> Result<()> {
 
     // Then, write your own Rust logic and build a Vec of instructions.
     // Should be under 700 bytes after serialization
-    let ix = create_pong_ix(runner);
+    let ix = create_update_ix(runner);
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
     // The functionRunner oracle will use the last outputted word to stdout as the serialized result. This is what gets executed on-chain.
@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
 }
 
 pub fn create_ping_ix(runner: &FunctionRunner) -> Instruction {
-    println!("ping 2: electric boogaloo");
+    println!("ping 3");
       Instruction {
         program_id: oracle_poc::ID,
         accounts: vec![
@@ -61,21 +61,10 @@ pub fn create_update_ix(runner: &FunctionRunner) -> Instruction {
         Instruction {
         program_id: oracle_poc::ID,
         accounts: vec![
-            AccountMeta {
-                pubkey: runner.function,
-                is_signer: false,
-                is_writable: false,
-            },
-            AccountMeta {
-                pubkey: oracle_key,
-                is_signer: false,
-                is_writable: true,
-            },
-            AccountMeta {
-                pubkey: runner.signer,
-                is_signer: true,
-                is_writable: false,
-            },
+            AccountMeta::new_readonly(runner.function, false),
+            AccountMeta::new(oracle_key, false),
+            // our enclave generated signer must sign to update our program
+            AccountMeta::new_readonly(runner.signer, true),
         ],
         data: get_ixn_discriminator("update_oracle").to_vec()
     }
