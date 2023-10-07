@@ -2,7 +2,8 @@
     "scripts": {
         "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
         "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-        "deploy:function": "ts-node scripts/functionDeploy.ts"
+        "function:deploy": "ts-node scripts/functionDeploy.ts",
+        "contract:init": "ts-node scripts/initialize.ts"
     },
     "dependencies": {
         "@coral-xyz/anchor": "^0.28.0",

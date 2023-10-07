@@ -5,7 +5,7 @@ To deploy the function follow these steps
 1. Change the DOCKERHUB_CONTAINER_NAME variable to ensure that a fresh container is used
 2. `make docker_build_rust`
 3. `make docker_publish_rust`
-4. `yarn deploy:function`
+4. `yarn function:deploy`
 5. Go to the switchboard website and fund the function, make sure that the correct measurement is included (run `make measurement` to check)
 
 
