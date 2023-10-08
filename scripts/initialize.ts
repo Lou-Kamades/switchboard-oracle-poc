@@ -14,7 +14,7 @@ async function main() {
   console.log(`PAYER: ${payer.publicKey}`);
 
   // TODO: why is anchor workspace empty?
-  const program: anchor.Program<OraclePoc> = new anchor.Program(IDL, new PublicKey('b36ENxZ8qYekipdAfqo7LRE1p98xy6cFNJQyM4o3sgy'), provider)
+  const program: anchor.Program<OraclePoc> = new anchor.Program(IDL, new PublicKey('A2h16ZekNmvuFzJCS4MdU1Pe1AwZE2pyFtFDBeaRJQES'), provider)
   const [oracle, bump] = PublicKey.findProgramAddressSync([Buffer.from("oracle")], program.programId)
 
   const signature = await  program.methods.initialize().accounts({

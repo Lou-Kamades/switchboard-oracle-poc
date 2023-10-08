@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("b36ENxZ8qYekipdAfqo7LRE1p98xy6cFNJQyM4o3sgy");
+declare_id!("A2h16ZekNmvuFzJCS4MdU1Pe1AwZE2pyFtFDBeaRJQES");
 
 #[program]
 pub mod oracle_poc {
@@ -13,19 +13,11 @@ pub mod oracle_poc {
         Ok(())
     }
 
-    pub fn ping(_ctx: Context<Ping>) -> anchor_lang::Result<()> {
-        msg!("ding dong");
-        Ok(())
-    }
-
-    pub fn pong(_ctx: Context<Pong>) -> anchor_lang::Result<()> {
-        msg!("cool");
-        Ok(())
-    }
-
-    pub fn update_oracle(ctx: Context<UpdateOracle>) -> anchor_lang::Result<()> {
+    pub fn update_oracle(ctx: Context<UpdateOracle>, params: UpdateOracleParams) -> anchor_lang::Result<()> {
         let oracle = &mut ctx.accounts.oracle.load_mut()?;
-        oracle.price += 1;
+        oracle.price = params.price_raw as i128;
+        oracle.oracle_timestamp = params.publish_time;
+        msg!("updated oracle: {:?}", params);
         Ok(())
     }
 }
@@ -47,26 +39,9 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(Accounts)]
-pub struct Ping<'info> {
-    #[account(
-        constraint =
-                switchboard_function.load()?.validate(
-                &enclave_signer.to_account_info()
-            )? @ OracleError::FunctionValidationFailed
-    )]
-    pub switchboard_function: AccountLoader<'info, FunctionAccountData>,
-
-    pub enclave_signer: Signer<'info>,
-}
 
 #[derive(Accounts)]
-pub struct Pong<'info> {
-    pub signer: Signer<'info>,
-}
-
-
-#[derive(Accounts)]
+#[instruction(params: UpdateOracleParams)] // rpc parameters hint
 pub struct UpdateOracle<'info> {
     // ... your required accounts to modify your program's state
     // We use this to derive and verify the functions enclave state
@@ -87,6 +62,12 @@ pub struct UpdateOracle<'info> {
     pub oracle: AccountLoader<'info, OracleData>,
 
     pub enclave_signer: Signer<'info>,
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct UpdateOracleParams {
+    pub price_raw: i64, 
+    pub publish_time: i64,
 }
 
 #[error_code]

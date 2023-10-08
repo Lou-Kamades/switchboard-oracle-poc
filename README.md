@@ -1,4 +1,4 @@
-The smart contract can be built and deployed normally using Anchor. Currently there is a devnet deployment at b36ENxZ8qYekipdAfqo7LRE1p98xy6cFNJQyM4o3sgy that the switchboard functions reference.
+The smart contract can be built and deployed normally using Anchor. Currently there is a devnet deployment at A2h16ZekNmvuFzJCS4MdU1Pe1AwZE2pyFtFDBeaRJQES that the switchboard functions reference.
 
 To deploy the function follow these steps
 
