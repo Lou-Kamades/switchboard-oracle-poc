@@ -18,7 +18,11 @@ async function main() {
   const switchboardProgram = await SwitchboardProgram.fromProvider(provider);
 
   // TODO: why is anchor workspace empty?
-  const program: anchor.Program<OraclePoc> = new anchor.Program(IDL, new PublicKey('7zNxbvdozQr5zmg6fX3ZpZhWGtoCpUvpSxHXvC25gSWS'), provider)
+  const program: anchor.Program<OraclePoc> = new anchor.Program(
+    IDL,
+    new PublicKey("7zNxbvdozQr5zmg6fX3ZpZhWGtoCpUvpSxHXvC25gSWS"),
+    provider
+  );
   const [programStatePubkey] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("ORACLEPOC")],
     program.programId
@@ -45,30 +49,29 @@ async function main() {
   const attestationQueueAccount = await loadDefaultQueue(switchboardProgram);
   console.log(`ATTESTATION_QUEUE: ${attestationQueueAccount.publicKey}`);
 
-   // Create the instructions to initialize our Switchboard Function
+  // Create the instructions to initialize our Switchboard Function
   const [functionAccount, functionInit] =
-  await attestationQueueAccount.createFunctionInstruction(payer.publicKey, {
-    name: `${process.env.DOCKERHUB_CONTAINER_NAME}`,
-    schedule: "15 * * * * *", // TODO: set a real schedule
-    container: `${process.env.DOCKERHUB_ORGANIZATION}/${process.env.DOCKERHUB_CONTAINER_NAME}`,
-    containerRegistry: "dockerhub",
-    version: "latest"
-  });
+    await attestationQueueAccount.createFunctionInstruction(payer.publicKey, {
+      name: `${process.env.DOCKERHUB_CONTAINER_NAME}`,
+      schedule: "15 * * * * *", // TODO: set a real schedule
+      container: `${process.env.DOCKERHUB_ORGANIZATION}/${process.env.DOCKERHUB_CONTAINER_NAME}`,
+      containerRegistry: "dockerhub",
+      version: "latest",
+    });
   console.log(`SWITCHBOARD_FUNCTION: ${functionAccount.publicKey}`);
 
   const signature = await program.methods
-  .initialize()
-  .accounts({
-    program: programStatePubkey,
-    authority: payer.publicKey,
-    switchboardFunction: functionAccount.publicKey,
-  })
-  .signers([...functionInit.signers])
-  .preInstructions([...functionInit.ixns])
-  .rpc();
+    .initialize()
+    .accounts({
+      program: programStatePubkey,
+      authority: payer.publicKey,
+      switchboardFunction: functionAccount.publicKey,
+    })
+    .signers([...functionInit.signers])
+    .preInstructions([...functionInit.ixns])
+    .rpc();
 
   console.log(`Oracle Proof of Concept initialized: ${signature}`);
-
 }
 
-main()
+main();

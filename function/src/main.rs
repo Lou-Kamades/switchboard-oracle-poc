@@ -10,6 +10,9 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 use switchboard_solana::{get_ixn_discriminator, solana_client::nonblocking::rpc_client::RpcClient, solana_sdk::pubkey};
 use tokio::try_join;
 
+// TODO: function to fetch all existing oracles
+// TODO: some criteria for deciding which oracles get an update
+
 pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<()> {
     let jupiter_prices = fetch_jupiter_prices(runner).await?;
     println!("jup prices: {:?}", jupiter_prices);
@@ -35,7 +38,6 @@ async fn main() -> Result<()> {
     if runner.assert_mr_enclave().is_err() {
         runner.emit_error(199).await?;
     }
-
 
     let rpc_url = "http:/pythnet.rpcpool.com".to_string();
     let rpc_client = RpcClient::new(rpc_url);
