@@ -1,19 +1,23 @@
 use pyth_sdk::Price;
 use pyth_sdk_solana::load_price_feed_from_account;
+use solana_account_decoder::UiAccountEncoding;
 pub use switchboard_solana::prelude::*;
 use switchboard_utils::protos::{JupiterSwapClient, JupiterSwapQuoteResponse, TokenInput};
+use anyhow::anyhow;
 
-use oracle_poc::{UpdateOracleParams, PROGRAM_SEED};
+
+use oracle_poc::{UpdateOracleParams, PROGRAM_SEED, OracleData, OracleError};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 use switchboard_solana::{
-    get_ixn_discriminator, solana_client::nonblocking::rpc_client::RpcClient, solana_sdk::pubkey,
+    get_ixn_discriminator, solana_client::{nonblocking::rpc_client::RpcClient, rpc_config::{RpcProgramAccountsConfig, RpcAccountInfoConfig}, rpc_filter::{RpcFilterType, Memcmp}}, solana_sdk::pubkey,
 };
 use tokio::try_join;
 
 // TODO: function to fetch all existing oracles
 // TODO: some criteria for deciding which oracles get an update
+
 
 pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<()> {
     let jupiter_prices = fetch_jupiter_prices(runner).await?;
@@ -21,11 +25,13 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
 
     // failover fetch Orca price?
 
-    let pyth_usd_price = fetch_usd_price_from_pyth(rpc_client, runner).await?;
+    let pyth_usd_price = fetch_usd_price_from_pyth(&rpc_client, runner).await?;
+
+    let oracle = fetch_oracle_by_name(&rpc_client, "New3".to_string()).await?; // TODO: env var?
 
     // Then, write your own Rust logic and build a Vec of instructions.
     // Should be under 700 bytes after serialization
-    let ix = create_update_ix(runner, pyth_usd_price);
+    let ix = create_update_ix(runner, pyth_usd_price, oracle);
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
     // The functionRunner oracle will use the last outputted word to stdout as the serialized result. This is what gets executed on-chain.
@@ -51,12 +57,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub fn create_update_ix(runner: &FunctionRunner, pyth_price: Price) -> Instruction {
-    let (oracle_key, _) = Pubkey::find_program_address(&[&[
-        78, 101, 119, 51, 0, 0,
-         0,   0,   0,  0, 0, 0,
-         0,   0,   0,  0
-      ]], &oracle_poc::ID); // TODO: fix
+pub fn create_update_ix(runner: &FunctionRunner, pyth_price: Price, oracle: OracleData) -> Instruction {
+    let (oracle_key, _) = Pubkey::find_program_address(&[&oracle.name[..]], &oracle_poc::ID);
 
     let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
     let params = UpdateOracleParams {
@@ -116,7 +118,7 @@ pub async fn fetch_orca_prices(_runner: &FunctionRunner) -> Result<()> {
 }
 
 pub async fn fetch_usd_price_from_pyth(
-    rpc_client: RpcClient,
+    rpc_client: &RpcClient,
     runner: &FunctionRunner,
 ) -> Result<Price> {
     let usdc_price_key: Pubkey = pubkey!("Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD");
@@ -136,12 +138,47 @@ pub async fn fetch_usd_price_from_pyth(
     Ok(price)
 }
 
+pub async fn fetch_all_oracles(rpc_client: &RpcClient) -> Result<Vec<OracleData>> {
+    let config = RpcProgramAccountsConfig {
+        filters: Some(vec![RpcFilterType::Memcmp(Memcmp::new_raw_bytes(
+            0,
+            OracleData::discriminator().to_vec(),
+        ))]),
+        account_config: RpcAccountInfoConfig {
+            encoding: Some(UiAccountEncoding::Base64),
+            commitment: Some(rpc_client.commitment()),
+            ..RpcAccountInfoConfig::default()
+        },
+        with_context: Some(true),
+    };
+
+    let program_accounts = rpc_client.get_program_accounts_with_config(&oracle_poc::id(), config).await?;
+    let oracles: Vec<OracleData> = program_accounts.into_iter().map(|r| OracleData::try_deserialize(&mut &r.1.data[..]).unwrap()).collect();
+
+    Ok(oracles)
+}
+
+pub async fn fetch_oracle_by_name(rpc_client: &RpcClient, name: String) -> Result<OracleData> {
+    let oracles = fetch_all_oracles(rpc_client).await?;
+
+    let mut oracle_buffer = [0u8; 16];
+    let name_bytes = name.as_bytes();
+    let len = name_bytes.len();
+    if len > 16 {
+        panic!("Oracle name should be <= 16 bytes");
+    }
+    oracle_buffer[..len].copy_from_slice(&name_bytes[..len]);
+
+    let maybe_oracle = oracles.into_iter().find(|x| x.name == oracle_buffer);
+    maybe_oracle.ok_or(anyhow!("Could not find Oracle with name: {} in {}", name, oracle_poc::id()).into())
+}
+
 #[cfg(test)]
 mod tests {
     use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner};
 
     use crate::{
-        create_update_ix, fetch_jupiter_prices, fetch_usd_price_from_pyth, get_ixn_discriminator,
+        create_update_ix, fetch_jupiter_prices, fetch_usd_price_from_pyth, get_ixn_discriminator, fetch_all_oracles,
         perform, Result,
     };
 
@@ -161,22 +198,23 @@ mod tests {
         Ok(runner)
     }
 
-    #[tokio::test]
-    async fn mock() {
-        let rpc_url = "http:/pythnet.rpcpool.com".to_string();
-        let rpc_client = RpcClient::new(rpc_url);
-        let runner = setup_runner().unwrap();
-        if runner.assert_mr_enclave().is_err() {
-            panic!("199");
-        }
+    // #[tokio::test]
+    // async fn mock() {
+    //     let rpc_url = "http:/pythnet.rpcpool.com".to_string();
+    //     let rpc_client = RpcClient::new(rpc_url);
+    //     let runner = setup_runner().unwrap();
+    //     if runner.assert_mr_enclave().is_err() {
+    //         panic!("199");
+    //     }
 
-        let price = fetch_usd_price_from_pyth(rpc_client, &runner)
-            .await
-            .unwrap();
+    //     let price = fetch_usd_price_from_pyth(rpc_client, &runner)
+    //         .await
+    //         .unwrap();
 
-        let ix = create_update_ix(&runner, price);
-        // println!("{:?}", ix);
-    }
+    //     let ix = create_update_ix(&runner, price);
+    //     // println!("{:?}", ix);
+    // }
+
 
     // #[tokio::test]
     // async fn test_fetch_jupiter_price() {

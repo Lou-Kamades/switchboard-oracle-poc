@@ -11,6 +11,5 @@ To add an oracle to the contract:
 1. Ensure the programId and ORACLE_NAME variables are set properly in `scripts/addOracle.ts`
 2. `yarn addOracle`
 
-
 To run Anchor tests:
 `anchor test -- --features "test"`

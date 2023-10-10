@@ -1547,6 +1547,8 @@ dependencies = [
  "pyth-sdk-solana",
  "serde",
  "serde_json",
+ "solana-account-decoder",
+ "solana-client",
  "solana-sdk",
  "switchboard-solana",
  "switchboard-utils",

@@ -22,7 +22,7 @@ describe("oracle-poc", () => {
   let attestationQueueAccount: AttestationQueueAccount;
   let functionAccount: FunctionAccount;
   let functionInit: TransactionObject;
-  let oracle: PublicKey
+  let oracle: PublicKey;
 
   const ORACLE_NAME = "TEST";
   const oracleBuffer = Buffer.alloc(16);
@@ -100,16 +100,18 @@ describe("oracle-poc", () => {
 
   it("Can update an oracle", async () => {
     const signature = await program.methods
-      .updateOracle({ priceRaw: new anchor.BN(11),
-        publishTime: new anchor.BN(25) })
+      .updateOracle({
+        priceRaw: new anchor.BN(11),
+        publishTime: new anchor.BN(25),
+      })
       .accounts({
         oracle,
         program: programStatePubkey,
         switchboardFunction: functionAccount.publicKey,
         enclaveSigner: functionInit.payer,
       })
-      .rpc()
+      .rpc();
 
-      console.log(`Update Oracle: ${signature}`);
+    console.log(`Update Oracle: ${signature}`);
   });
 });

@@ -40,9 +40,13 @@ pub mod oracle_poc {
         ctx: Context<UpdateOracle>,
         params: UpdateOracleParams,
     ) -> anchor_lang::Result<()> {
-        #[cfg(not(feature="test"))]
+        #[cfg(not(feature = "test"))]
         require!(
-            ctx.accounts.switchboard_function.load()?.validate(&ctx.accounts.enclave_signer.to_account_info()) == Ok(true),
+            ctx.accounts
+                .switchboard_function
+                .load()?
+                .validate(&ctx.accounts.enclave_signer.to_account_info())
+                == Ok(true),
             OracleError::FunctionValidationFailed
         );
 
@@ -177,6 +181,7 @@ pub struct ProgramState {
 
 #[repr(packed)]
 #[account(zero_copy(unsafe))]
+#[derive(Debug)]
 pub struct OracleData {
     pub oracle_timestamp: i64,
     pub price: i128,
