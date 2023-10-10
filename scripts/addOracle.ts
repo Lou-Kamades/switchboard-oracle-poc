@@ -7,7 +7,7 @@ dotenv.config();
 async function main() {
   console.log(`Adding Oracle`);
 
-  const ORACLE_NAME = "New1";
+  const ORACLE_NAME = "New3";
 
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -44,7 +44,7 @@ async function main() {
       program: programStatePubkey,
       authority: payer.publicKey,
     })
-    .rpc({ skipPreflight: true });
+    .rpc();
 
   console.log(`Add Oracle: ${signature}`);
 }

@@ -22,6 +22,12 @@ describe("oracle-poc", () => {
   let attestationQueueAccount: AttestationQueueAccount;
   let functionAccount: FunctionAccount;
   let functionInit: TransactionObject;
+  let oracle: PublicKey
+
+  const ORACLE_NAME = "TEST";
+  const oracleBuffer = Buffer.alloc(16);
+  oracleBuffer.fill(ORACLE_NAME, 0, Buffer.from(ORACLE_NAME).length);
+  // console.log(oracleBuffer.buffer)
 
   before(async () => {
     program = new anchor.Program(
@@ -75,10 +81,7 @@ describe("oracle-poc", () => {
   });
 
   it("Can add an oracle", async () => {
-    const ORACLE_NAME = "TEST";
-    const oracleBuffer = Buffer.alloc(16);
-    oracleBuffer.fill(ORACLE_NAME, 0, Buffer.from(ORACLE_NAME).length);
-    const [oracle, bump] = PublicKey.findProgramAddressSync(
+    [oracle] = PublicKey.findProgramAddressSync(
       [oracleBuffer],
       program.programId
     );
@@ -93,5 +96,20 @@ describe("oracle-poc", () => {
       .rpc();
 
     console.log(`Add Oracle: ${signature}`);
+  });
+
+  it("Can update an oracle", async () => {
+    const signature = await program.methods
+      .updateOracle({ priceRaw: new anchor.BN(11),
+        publishTime: new anchor.BN(25) })
+      .accounts({
+        oracle,
+        program: programStatePubkey,
+        switchboardFunction: functionAccount.publicKey,
+        enclaveSigner: functionInit.payer,
+      })
+      .rpc()
+
+      console.log(`Update Oracle: ${signature}`);
   });
 });

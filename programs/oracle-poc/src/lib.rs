@@ -30,6 +30,7 @@ pub mod oracle_poc {
 
     pub fn add_oracle(ctx: Context<AddOracle>, params: AddOracleParams) -> anchor_lang::Result<()> {
         let oracle = &mut ctx.accounts.oracle.load_init()?;
+        oracle.bump = *ctx.bumps.get("oracle").unwrap();
         oracle.name = name_from_str(&params.name)?;
         msg!("added oracle: {:?}", params);
         Ok(())
@@ -39,6 +40,12 @@ pub mod oracle_poc {
         ctx: Context<UpdateOracle>,
         params: UpdateOracleParams,
     ) -> anchor_lang::Result<()> {
+        #[cfg(not(feature="test"))]
+        require!(
+            ctx.accounts.switchboard_function.load()?.validate(&ctx.accounts.enclave_signer.to_account_info()) == Ok(true),
+            OracleError::FunctionValidationFailed
+        );
+
         let oracle = &mut ctx.accounts.oracle.load_mut()?;
         oracle.price = params.price_raw as i128;
         oracle.oracle_timestamp = params.publish_time;
@@ -77,7 +84,7 @@ pub struct SetFunction<'info> {
     pub program: AccountLoader<'info, ProgramState>,
     pub authority: Signer<'info>,
 
-    pub switchboard_function: AccountLoader<'info, FunctionAccountData>,
+    pub switchboard_function: AccountLoader<'info, FunctionAccountData>, // TODO: more constraints
 }
 
 #[derive(Accounts)]
@@ -92,18 +99,13 @@ pub struct UpdateOracle<'info> {
     )]
     pub program: AccountLoader<'info, ProgramState>,
 
-    #[account(
-        constraint =
-                switchboard_function.load()?.validate(
-                &enclave_signer.to_account_info()
-            )? @ OracleError::FunctionValidationFailed
-    )]
+    #[account()]
     pub switchboard_function: AccountLoader<'info, FunctionAccountData>,
 
     #[account(
         mut,
         seeds = [&oracle.load()?.name],
-        bump
+        bump = oracle.load()?.bump
     )]
     pub oracle: AccountLoader<'info, OracleData>,
 

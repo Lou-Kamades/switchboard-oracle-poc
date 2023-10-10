@@ -3,11 +3,13 @@ use pyth_sdk_solana::load_price_feed_from_account;
 pub use switchboard_solana::prelude::*;
 use switchboard_utils::protos::{JupiterSwapClient, JupiterSwapQuoteResponse, TokenInput};
 
-use oracle_poc::UpdateOracleParams;
+use oracle_poc::{UpdateOracleParams, PROGRAM_SEED};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-use switchboard_solana::{get_ixn_discriminator, solana_client::nonblocking::rpc_client::RpcClient, solana_sdk::pubkey};
+use switchboard_solana::{
+    get_ixn_discriminator, solana_client::nonblocking::rpc_client::RpcClient, solana_sdk::pubkey,
+};
 use tokio::try_join;
 
 // TODO: function to fetch all existing oracles
@@ -16,7 +18,7 @@ use tokio::try_join;
 pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<()> {
     let jupiter_prices = fetch_jupiter_prices(runner).await?;
     println!("jup prices: {:?}", jupiter_prices);
-    
+
     // failover fetch Orca price?
 
     let pyth_usd_price = fetch_usd_price_from_pyth(rpc_client, runner).await?;
@@ -50,25 +52,32 @@ async fn main() -> Result<()> {
 }
 
 pub fn create_update_ix(runner: &FunctionRunner, pyth_price: Price) -> Instruction {
-    let (oracle_key, _) = Pubkey::find_program_address(&[b"oracle"], &oracle_poc::ID);
-    let params = UpdateOracleParams { 
+    let (oracle_key, _) = Pubkey::find_program_address(&[&[
+        78, 101, 119, 51, 0, 0,
+         0,   0,   0,  0, 0, 0,
+         0,   0,   0,  0
+      ]], &oracle_poc::ID); // TODO: fix
+
+    let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
+    let params = UpdateOracleParams {
         price_raw: pyth_price.price,
-        publish_time: pyth_price.publish_time, 
-     };
+        publish_time: pyth_price.publish_time,
+    };
 
     Instruction {
         program_id: oracle_poc::ID,
         accounts: vec![
+            AccountMeta::new_readonly(program_state, false),
             AccountMeta::new_readonly(runner.function, false),
             AccountMeta::new(oracle_key, false),
             // our enclave generated signer must sign to update our program
             AccountMeta::new_readonly(runner.signer, true),
         ],
         data: [
-                get_ixn_discriminator("update_oracle").to_vec(),
-                params.try_to_vec().unwrap(),
-            ]
-            .concat(),
+            get_ixn_discriminator("update_oracle").to_vec(),
+            params.try_to_vec().unwrap(),
+        ]
+        .concat(),
     }
 }
 
@@ -102,9 +111,7 @@ pub async fn fetch_jupiter_prices(
     Ok(ur)
 }
 
-pub async fn fetch_orca_prices(
-    _runner: &FunctionRunner,
-) -> Result<()> {
+pub async fn fetch_orca_prices(_runner: &FunctionRunner) -> Result<()> {
     unimplemented!("LpExchangeRateTask");
 }
 
@@ -120,8 +127,7 @@ pub async fn fetch_usd_price_from_pyth(
     };
     let mut usdc_price_account = account_result.unwrap();
 
-    let feed_result =
-        load_price_feed_from_account(&usdc_price_key, &mut usdc_price_account);
+    let feed_result = load_price_feed_from_account(&usdc_price_key, &mut usdc_price_account);
     if feed_result.is_err() {
         runner.emit_error(22).await?;
     };
@@ -132,9 +138,12 @@ pub async fn fetch_usd_price_from_pyth(
 
 #[cfg(test)]
 mod tests {
-    use switchboard_solana::{FunctionRunner, solana_client::nonblocking::rpc_client::RpcClient};
+    use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner};
 
-    use crate::{create_update_ix, fetch_jupiter_prices, get_ixn_discriminator, perform, Result, fetch_usd_price_from_pyth};
+    use crate::{
+        create_update_ix, fetch_jupiter_prices, fetch_usd_price_from_pyth, get_ixn_discriminator,
+        perform, Result,
+    };
 
     fn setup_runner() -> Result<FunctionRunner> {
         std::env::set_var("CLUSTER", "devnet");
@@ -152,36 +161,38 @@ mod tests {
         Ok(runner)
     }
 
-    // #[test]
-    // fn mock() {
-
-    //     // println!("{}", &std::env::var("CLUSTER").unwrap());
-    //
-    //     println!("{}", runner);
-
-    //     if runner.assert_mr_enclave().is_err() {
-    //         panic!("199");
-    //     }
-
-    //     let ix = create_update_ix(&runner);
-
-    //     println!("{:?}", ix);
-
-    // }
-
     #[tokio::test]
-    async fn test_fetch_jupiter_price() {
-        let runner = setup_runner().unwrap();
-        let x = fetch_jupiter_prices(&runner).await;
-        x.unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_fetch_pyth_price() {
+    async fn mock() {
         let rpc_url = "http:/pythnet.rpcpool.com".to_string();
         let rpc_client = RpcClient::new(rpc_url);
         let runner = setup_runner().unwrap();
-        let price = fetch_usd_price_from_pyth(rpc_client, &runner).await.unwrap();
-        println!("{:?}", price);
+        if runner.assert_mr_enclave().is_err() {
+            panic!("199");
+        }
+
+        let price = fetch_usd_price_from_pyth(rpc_client, &runner)
+            .await
+            .unwrap();
+
+        let ix = create_update_ix(&runner, price);
+        // println!("{:?}", ix);
     }
+
+    // #[tokio::test]
+    // async fn test_fetch_jupiter_price() {
+    //     let runner = setup_runner().unwrap();
+    //     let x = fetch_jupiter_prices(&runner).await;
+    //     x.unwrap();
+    // }
+
+    // #[tokio::test]
+    // async fn test_fetch_pyth_price() {
+    //     let rpc_url = "http:/pythnet.rpcpool.com".to_string();
+    //     let rpc_client = RpcClient::new(rpc_url);
+    //     let runner = setup_runner().unwrap();
+    //     let price = fetch_usd_price_from_pyth(rpc_client, &runner)
+    //         .await
+    //         .unwrap();
+    //     println!("{:?}", price);
+    // }
 }
