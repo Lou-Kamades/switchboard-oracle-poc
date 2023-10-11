@@ -1,20 +1,17 @@
-use anyhow::anyhow;
+
 use pyth_sdk::Price;
 use pyth_sdk_solana::load_price_feed_from_account;
-use solana_account_decoder::UiAccountEncoding;
+
 pub use switchboard_solana::prelude::*;
 use switchboard_utils::protos::{JupiterSwapClient, JupiterSwapQuoteResponse, TokenInput};
 
-use oracle_poc::{OracleData, OracleError, UpdateOracleParams, PROGRAM_SEED};
 
+#[allow(hidden_glob_reexports)]
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 use switchboard_solana::{
-    get_ixn_discriminator,
     solana_client::{
         nonblocking::rpc_client::RpcClient,
-        rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-        rpc_filter::{Memcmp, RpcFilterType},
     },
     solana_sdk::pubkey,
 };

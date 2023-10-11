@@ -4,6 +4,7 @@ declare_id!("7zNxbvdozQr5zmg6fX3ZpZhWGtoCpUvpSxHXvC25gSWS");
 
 pub mod instructions;
 
+#[allow(ambiguous_glob_reexports)]
 pub use instructions::*;
 
 pub const PROGRAM_SEED: &[u8] = b"ORACLEPOC";

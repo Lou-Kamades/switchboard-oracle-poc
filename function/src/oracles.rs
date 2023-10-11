@@ -8,6 +8,7 @@ use switchboard_solana::solana_client::{
     rpc_filter::{Memcmp, RpcFilterType},
 };
 
+#[allow(hidden_glob_reexports)]
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub async fn fetch_all_oracles(rpc_client: &RpcClient) -> Result<Vec<OracleData>> {
