@@ -7,7 +7,7 @@ dotenv.config();
 async function main() {
   console.log(`Adding Oracle`);
 
-  const ORACLE_NAME = "New3";
+  const ORACLE_NAME = "New13";
 
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);

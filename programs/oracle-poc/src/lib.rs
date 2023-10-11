@@ -4,7 +4,7 @@ declare_id!("7zNxbvdozQr5zmg6fX3ZpZhWGtoCpUvpSxHXvC25gSWS");
 
 pub mod instructions;
 
-use instructions::*;
+pub use instructions::*;
 
 pub const PROGRAM_SEED: &[u8] = b"ORACLEPOC";
 
