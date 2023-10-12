@@ -14,7 +14,7 @@ pub struct SetFunction<'info> {
     pub program: AccountLoader<'info, ProgramState>,
     pub authority: Signer<'info>,
 
-    pub switchboard_function: AccountLoader<'info, FunctionAccountData>, // TODO: more constraints
+    pub switchboard_function: AccountLoader<'info, FunctionAccountData>,
 }
 
 pub fn set_function(ctx: Context<SetFunction>) -> anchor_lang::Result<()> {

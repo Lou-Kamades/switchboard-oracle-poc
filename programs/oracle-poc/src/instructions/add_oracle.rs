@@ -1,18 +1,16 @@
 use anchor_lang::prelude::*;
 
-use crate::{name_from_str, OracleData, ProgramState, PROGRAM_SEED};
+use crate::{state::OracleContainer, ProgramState, ORACLE_SEED, PROGRAM_SEED};
 
 #[derive(Accounts)]
 #[instruction(params: AddOracleParams)]
 pub struct AddOracle<'info> {
     #[account(
-        init,
-        space = 8 + std::mem::size_of::<OracleData>(),
-        payer = authority,
-        seeds = [&name_from_str(&params.name).unwrap()],
+        mut,
+        seeds = [ORACLE_SEED],
         bump
     )]
-    pub oracle: AccountLoader<'info, OracleData>,
+    pub oracle_container: AccountLoader<'info, OracleContainer>,
 
     #[account(
         mut,
@@ -31,13 +29,11 @@ pub struct AddOracle<'info> {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AddOracleParams {
     pub name: String,
-    // TODO : staleness and other things
 }
 
 pub fn add_oracle(ctx: Context<AddOracle>, params: AddOracleParams) -> anchor_lang::Result<()> {
-    let oracle = &mut ctx.accounts.oracle.load_init()?;
-    oracle.bump = *ctx.bumps.get("oracle").unwrap();
-    oracle.name = name_from_str(&params.name)?;
+    let oracle_container = &mut ctx.accounts.oracle_container.load_mut()?;
+    oracle_container.add_oracle(&params.name)?;
     msg!("added oracle: {:?}", params);
     Ok(())
 }

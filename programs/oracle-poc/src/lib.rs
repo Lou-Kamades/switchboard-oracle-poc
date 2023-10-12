@@ -3,11 +3,13 @@ use anchor_lang::prelude::*;
 declare_id!("7zNxbvdozQr5zmg6fX3ZpZhWGtoCpUvpSxHXvC25gSWS");
 
 pub mod instructions;
+pub mod state;
 
 #[allow(ambiguous_glob_reexports)]
 pub use instructions::*;
 
 pub const PROGRAM_SEED: &[u8] = b"ORACLEPOC";
+pub const ORACLE_SEED: &[u8] = b"ORACLE";
 
 #[program]
 pub mod oracle_poc {
@@ -53,22 +55,13 @@ pub enum OracleError {
 
     #[msg("Oracle name must be <= 16 bytes")]
     OracleNameTooLong,
-}
 
-#[account(zero_copy(unsafe))]
-pub struct ProgramState {
-    pub bump: u8,
-    pub authority: Pubkey,
-    pub switchboard_function: Pubkey,
-}
+    #[msg("Oracle container is full")]
+    OracleContainerFull,
 
-#[repr(packed)]
-#[account(zero_copy(unsafe))]
-#[derive(Debug)]
-pub struct OracleData {
-    pub oracle_timestamp: i64,
-    pub price: i128,
-    // confidence ??
-    pub bump: u8,
-    pub name: [u8; 16],
+    #[msg("Oracle already added")]
+    OracleAlreadyAdded,
+
+    #[msg("Oracle not found")]
+    OracleNotFound,
 }

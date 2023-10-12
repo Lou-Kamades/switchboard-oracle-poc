@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use switchboard_solana::FunctionAccountData;
 
-use crate::{OracleData, OracleError, ProgramState, PROGRAM_SEED};
+use crate::{state::OracleContainer, OracleError, ProgramState, ORACLE_SEED, PROGRAM_SEED};
 
 #[derive(Accounts)]
 #[instruction(params: UpdateOracleParams)] // rpc parameters hint
@@ -20,10 +20,10 @@ pub struct UpdateOracle<'info> {
 
     #[account(
         mut,
-        seeds = [&oracle.load()?.name],
-        bump = oracle.load()?.bump
+        seeds = [ORACLE_SEED],
+        bump
     )]
-    pub oracle: AccountLoader<'info, OracleData>,
+    pub oracle_container: AccountLoader<'info, OracleContainer>,
 
     pub enclave_signer: Signer<'info>,
 }
@@ -31,7 +31,7 @@ pub struct UpdateOracle<'info> {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateOracleParams {
     pub price_raw: i64,
-    pub publish_time: i64,
+    pub oracle_name: String,
 }
 
 pub fn update_oracle(
@@ -48,9 +48,9 @@ pub fn update_oracle(
         OracleError::FunctionValidationFailed
     );
 
-    let oracle = &mut ctx.accounts.oracle.load_mut()?;
-    oracle.price = params.price_raw as i128;
-    oracle.oracle_timestamp = params.publish_time;
+    let oracle_container = &mut ctx.accounts.oracle_container.load_mut()?;
+    let slot = Clock::get()?.slot;
+    oracle_container.update_oracle(&params.oracle_name, params.price_raw as i128, slot)?;
     msg!("updated oracle: {:?}", params);
     Ok(())
 }

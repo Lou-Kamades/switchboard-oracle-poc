@@ -13,3 +13,6 @@ To add an oracle to the contract:
 
 To run Anchor tests:
 `anchor test -- --features "test"`
+
+To run Program rust tests:
+`cargo test-bpf`

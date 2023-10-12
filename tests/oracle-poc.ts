@@ -22,7 +22,7 @@ describe("oracle-poc", () => {
   let attestationQueueAccount: AttestationQueueAccount;
   let functionAccount: FunctionAccount;
   let functionInit: TransactionObject;
-  let oracle: PublicKey;
+  let oracleContainer: PublicKey;
 
   const ORACLE_NAME = "TEST";
   const oracleBuffer = Buffer.alloc(16);
@@ -39,6 +39,10 @@ describe("oracle-poc", () => {
 
     [programStatePubkey] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("ORACLEPOC")],
+      program.programId
+    );
+    [oracleContainer] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("ORACLE")],
       program.programId
     );
 
@@ -70,6 +74,7 @@ describe("oracle-poc", () => {
       .initialize()
       .accounts({
         program: programStatePubkey,
+        oracleContainer: oracleContainer,
         authority: provider.wallet.publicKey,
         switchboardFunction: functionAccount.publicKey,
       })
@@ -81,15 +86,10 @@ describe("oracle-poc", () => {
   });
 
   it("Can add an oracle", async () => {
-    [oracle] = PublicKey.findProgramAddressSync(
-      [oracleBuffer],
-      program.programId
-    );
-
     const signature = await program.methods
       .addOracle({ name: ORACLE_NAME })
       .accounts({
-        oracle,
+        oracleContainer,
         program: programStatePubkey,
         authority: provider.wallet.publicKey,
       })
@@ -102,10 +102,10 @@ describe("oracle-poc", () => {
     const signature = await program.methods
       .updateOracle({
         priceRaw: new anchor.BN(11),
-        publishTime: new anchor.BN(25),
+        oracleName: ORACLE_NAME,
       })
       .accounts({
-        oracle,
+        oracleContainer,
         program: programStatePubkey,
         switchboardFunction: functionAccount.publicKey,
         enclaveSigner: functionInit.payer,
