@@ -8,7 +8,7 @@ pub use switchboard_solana::prelude::*;
 pub mod oracles;
 pub mod prices;
 
-use oracle_poc::{OracleData, UpdateOracleParams, PROGRAM_SEED};
+use oracle_poc::{UpdateOracleParams, PROGRAM_SEED, ORACLE_SEED, state::OracleData};
 
 #[allow(hidden_glob_reexports)]
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -22,7 +22,7 @@ use switchboard_solana::{
 
 
 use crate::{
-    oracles::fetch_oracle_by_name,
+    oracles::{fetch_oracle_by_name, fetch_oracles_by_name},
     prices::{fetch_jupiter_prices, fetch_usd_price_from_pyth},
 };
 
@@ -31,21 +31,34 @@ use crate::{
 
 pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<()> {
     let jupiter_prices = fetch_jupiter_prices(runner).await?;
-    println!("jup prices: {:?}", jupiter_prices);
+    // println!("jup prices: {:?}", jupiter_prices);
+    println!("got jupiter price");
 
     // failover fetch Orca price?
 
     let pyth_usd_price = fetch_usd_price_from_pyth(&rpc_client, runner).await?;
+    let oracle_names = vec!["1".to_string()];
 
-    let oracle = fetch_oracle_by_name(&rpc_client, "New3".to_string()).await?; // TODO: env var?
+    let devnet_url = "devnet-url".to_string();
+    let devnet_client = RpcClient::new(devnet_url);
+
+    println!("fetching oracles");
+    let oracles = fetch_oracles_by_name(&devnet_client, oracle_names).await?; // TODO: env var?
+    println!("oracles: {:?}", oracles);
 
     // Then, write your own Rust logic and build a Vec of instructions.
     // Should be under 700 bytes after serialization
-    let ix = create_update_ix(runner, pyth_usd_price, oracle);
+    let mut ixs = vec![];
+    // for oracle in oracles { // todo : fix
+    let ix = create_update_ix(runner, &pyth_usd_price, "1".to_string());
+    println!("ix len: {:?}", ix.data.len());
+    ixs.push(ix);
+    // }
+
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
     // The functionRunner oracle will use the last outputted word to stdout as the serialized result. This is what gets executed on-chain.
-    runner.emit(vec![ix]).await?;
+    runner.emit(ixs).await?;
     Ok(())
 }
 
@@ -69,15 +82,14 @@ async fn main() -> Result<()> {
 
 pub fn create_update_ix(
     runner: &FunctionRunner,
-    pyth_price: Price,
-    oracle: OracleData,
+    pyth_price: &Price,
+    oracle_name: String
 ) -> Instruction {
-    let (oracle_key, _) = Pubkey::find_program_address(&[&oracle.name[..]], &oracle_poc::ID);
-
+    let (oracle_key, _) = Pubkey::find_program_address(&[ORACLE_SEED], &oracle_poc::ID);
     let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
     let params = UpdateOracleParams {
         price_raw: pyth_price.price,
-        publish_time: pyth_price.publish_time,
+        oracle_name,
     };
 
     Instruction {
@@ -99,11 +111,12 @@ pub fn create_update_ix(
 
 #[cfg(test)]
 mod tests {
-    use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner};
+    use oracle_poc::ORACLE_SEED;
+    use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner, Pubkey};
 
     use crate::{
-        create_update_ix, fetch_all_oracles, fetch_jupiter_prices, fetch_usd_price_from_pyth,
-        get_ixn_discriminator, perform, Result,
+        create_update_ix, fetch_jupiter_prices, fetch_usd_price_from_pyth,
+        get_ixn_discriminator, perform, Result, oracles::{fetch_all_oracles, fetch_oracles_by_name},
     };
 
     fn setup_runner() -> Result<FunctionRunner> {
@@ -156,4 +169,15 @@ mod tests {
     //         .unwrap();
     //     println!("{:?}", price);
     // }
+
+    #[tokio::test]
+    async fn test_fetch_oracles() {
+        let rpc_url = "devnet-url".to_string();
+        let rpc_client = RpcClient::new(rpc_url);
+        let oracle_names = vec!["New3".to_string(), "New4".to_string(), "New5".to_string(), "New6".to_string(), "New7".to_string()];
+        let goo = fetch_oracles_by_name(&rpc_client, oracle_names)
+            .await
+            .unwrap();
+        println!("{:?}", goo);
+    }
 }

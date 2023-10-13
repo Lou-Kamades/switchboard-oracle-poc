@@ -7,7 +7,7 @@ dotenv.config();
 async function main() {
   console.log(`Adding Oracle`);
 
-  const ORACLE_NAME = "New13";
+  const ORACLE_NAME = "1";
 
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -18,7 +18,7 @@ async function main() {
   // TODO: why is anchor workspace empty?
   const program: anchor.Program<OraclePoc> = new anchor.Program(
     IDL,
-    new PublicKey("7zNxbvdozQr5zmg6fX3ZpZhWGtoCpUvpSxHXvC25gSWS"),
+    new PublicKey("54L5cghsGTgT3kuvJf3qSErjURLqvk478EFXtX8m63Ao"),
     provider
   );
   const [programStatePubkey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -27,20 +27,15 @@ async function main() {
   );
   console.log(`PROGRAM_STATE: ${programStatePubkey}`);
 
-  const oracleBuffer = Buffer.alloc(16);
-  oracleBuffer.fill(ORACLE_NAME, 0, Buffer.from(ORACLE_NAME).length);
-  console.log(oracleBuffer);
-  const [oracle, bump] = PublicKey.findProgramAddressSync(
-    [oracleBuffer],
+  const [oracleContainer] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("ORACLE")],
     program.programId
   );
-
-  console.log(`ORACLE: ${oracle}`);
 
   const signature = await program.methods
     .addOracle({ name: ORACLE_NAME })
     .accounts({
-      oracle,
+      oracleContainer,
       program: programStatePubkey,
       authority: payer.publicKey,
     })

@@ -42,7 +42,7 @@ pub async fn fetch_jupiter_prices(
     };
 
     let ur = quote_results.unwrap();
-    println!("{:?}, {:?}", ur.0, ur.1);
+    // println!("{:?}, {:?}", ur.0, ur.1);
 
     Ok(ur)
 }
