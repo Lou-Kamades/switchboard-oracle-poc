@@ -1,36 +1,36 @@
-
+#![feature(async_fn_in_trait)]
 use pyth_sdk::Price;
 
-
 pub use switchboard_solana::prelude::*;
-
 
 pub mod oracles;
 pub mod prices;
 
-use oracle_poc::{UpdateOracleParams, PROGRAM_SEED, ORACLE_SEED, state::OracleData};
+use oracle_poc::{state::OracleData, UpdateOracleParams, ORACLE_SEED, PROGRAM_SEED};
 
 #[allow(hidden_glob_reexports)]
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 use switchboard_solana::{
-    get_ixn_discriminator,
-    solana_client::{
-        nonblocking::rpc_client::RpcClient,
-    },
+    get_ixn_discriminator, solana_client::nonblocking::rpc_client::RpcClient,
 };
-
+use switchboard_utils::protos::TokenInput;
 
 use crate::{
     oracles::{fetch_oracle_by_name, fetch_oracles_by_name},
-    prices::{fetch_jupiter_prices, fetch_usd_price_from_pyth},
+    prices::{fetch_jupiter_quotes, fetch_usd_price_from_pyth},
 };
 
 // TODO: function to fetch all existing oracles
 // TODO: some criteria for deciding which oracles get an update
 
 pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<()> {
-    let jupiter_prices = fetch_jupiter_prices(runner).await?;
+    let sol_token = TokenInput {
+        address: "So11111111111111111111111111111111111111112".to_string(),
+        decimals: 9,
+    };
+
+    let jupiter_quotes = fetch_jupiter_quotes(runner, sol_token).await?;
     // println!("jup prices: {:?}", jupiter_prices);
     println!("got jupiter price");
 
@@ -54,7 +54,6 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
     println!("ix len: {:?}", ix.data.len());
     ixs.push(ix);
     // }
-
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
     // The functionRunner oracle will use the last outputted word to stdout as the serialized result. This is what gets executed on-chain.
@@ -83,7 +82,7 @@ async fn main() -> Result<()> {
 pub fn create_update_ix(
     runner: &FunctionRunner,
     pyth_price: &Price,
-    oracle_name: String
+    oracle_name: String,
 ) -> Instruction {
     let (oracle_key, _) = Pubkey::find_program_address(&[ORACLE_SEED], &oracle_poc::ID);
     let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
@@ -112,11 +111,17 @@ pub fn create_update_ix(
 #[cfg(test)]
 mod tests {
     use oracle_poc::ORACLE_SEED;
-    use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner, Pubkey};
+    use switchboard_solana::{
+        solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner, Pubkey,
+    };
+    use switchboard_utils::protos::TokenInput;
 
     use crate::{
-        create_update_ix, fetch_jupiter_prices, fetch_usd_price_from_pyth,
-        get_ixn_discriminator, perform, Result, oracles::{fetch_all_oracles, fetch_oracles_by_name},
+        create_update_ix, fetch_usd_price_from_pyth, get_ixn_discriminator,
+        oracles::{fetch_all_oracles, fetch_oracles_by_name},
+        perform,
+        prices::{fetch_jupiter_prices, fetch_jupiter_quotes},
+        Result,
     };
 
     fn setup_runner() -> Result<FunctionRunner> {
@@ -153,11 +158,29 @@ mod tests {
     // }
 
     // #[tokio::test]
-    // async fn test_fetch_jupiter_price() {
-    //     let runner = setup_runner().unwrap();
-    //     let x = fetch_jupiter_prices(&runner).await;
+    // async fn test_fetch_jupiter_prices() {
+    //     let x = fetch_jupiter_prices(vec![
+    //         "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v".to_string(),
+    //         "SOL".to_string(),
+    //     ])
+    //     .await;
     //     x.unwrap();
     // }
+
+    #[tokio::test]
+    async fn test_fetch_jupiter_quotes() {
+
+        let runner = setup_runner().unwrap();
+            let sol_token = TokenInput {
+                address: "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac".to_string(),
+                decimals: 9,
+            };
+        
+            let jupiter_quotes = fetch_jupiter_quotes(&runner, sol_token).await.unwrap();
+            for q in jupiter_quotes {
+                println!("{:?}", q);
+            }
+    }
 
     // #[tokio::test]
     // async fn test_fetch_pyth_price() {
@@ -170,14 +193,20 @@ mod tests {
     //     println!("{:?}", price);
     // }
 
-    #[tokio::test]
-    async fn test_fetch_oracles() {
-        let rpc_url = "devnet-url".to_string();
-        let rpc_client = RpcClient::new(rpc_url);
-        let oracle_names = vec!["New3".to_string(), "New4".to_string(), "New5".to_string(), "New6".to_string(), "New7".to_string()];
-        let goo = fetch_oracles_by_name(&rpc_client, oracle_names)
-            .await
-            .unwrap();
-        println!("{:?}", goo);
-    }
+    // #[tokio::test]
+    // async fn test_fetch_oracles() {
+    //     let rpc_url = "devnet-url".to_string();
+    //     let rpc_client = RpcClient::new(rpc_url);
+    //     let oracle_names = vec![
+    //         "New3".to_string(),
+    //         "New4".to_string(),
+    //         "New5".to_string(),
+    //         "New6".to_string(),
+    //         "New7".to_string(),
+    //     ];
+    //     let goo = fetch_oracles_by_name(&rpc_client, oracle_names)
+    //         .await
+    //         .unwrap();
+    //     println!("{:?}", goo);
+    // }
 }
