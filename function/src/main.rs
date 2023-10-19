@@ -30,7 +30,8 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
         decimals: 9,
     };
 
-    let jupiter_quotes = fetch_jupiter_quotes(runner, sol_token).await?;
+    let jupiter_quotes = fetch_jupiter_quotes(runner, &sol_token).await?;
+
     // println!("jup prices: {:?}", jupiter_prices);
     println!("got jupiter price");
 
@@ -120,7 +121,10 @@ mod tests {
         create_update_ix, fetch_usd_price_from_pyth, get_ixn_discriminator,
         oracles::{fetch_all_oracles, fetch_oracles_by_name},
         perform,
-        prices::{fetch_jupiter_prices, fetch_jupiter_quotes},
+        prices::{
+            calculate_avg_price_and_std_dev, estimate_price_from_quote, fetch_jupiter_prices,
+            fetch_jupiter_quotes,
+        },
         Result,
     };
 
@@ -169,17 +173,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_jupiter_quotes() {
-
         let runner = setup_runner().unwrap();
-            let sol_token = TokenInput {
-                address: "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac".to_string(),
-                decimals: 9,
-            };
-        
-            let jupiter_quotes = fetch_jupiter_quotes(&runner, sol_token).await.unwrap();
-            for q in jupiter_quotes {
-                println!("{:?}", q);
-            }
+        let sol_token = TokenInput {
+            address: "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac".to_string(),
+            decimals: 6,
+        };
+
+        // let sol_token = TokenInput {
+        //     address: "So11111111111111111111111111111111111111112".to_string(),
+        //     decimals: 9,
+        // };
+
+        let jupiter_quotes = fetch_jupiter_quotes(&runner, &sol_token).await.unwrap();
+
+        let (mean, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token);
+
+        println!("{:?} {:?}", mean, std_dev);
+        // for q in jupiter_quotes {
+        //     println!("{:?}", estimate_price_from_quote(&q, &sol_token));
+        //     println!("{:?}", q);
+        // }
     }
 
     // #[tokio::test]

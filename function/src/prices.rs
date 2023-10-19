@@ -18,9 +18,11 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, solana_sdk::pubkey};
 use tokio::{join, try_join};
 
+pub const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+
 pub async fn fetch_jupiter_quotes(
     runner: &FunctionRunner,
-    token: TokenInput,
+    token: &TokenInput,
 ) -> Result<Vec<JupiterSwapQuoteResponse>> {
     let mint = token.address.clone();
 
@@ -32,31 +34,31 @@ pub async fn fetch_jupiter_quotes(
         500_000_000f64,
         1000_000_000f64,
         5000_000_000f64,
-        10000_000_000f64
+        10000_000_000f64,
     ]
     .into_iter()
-    .map(|a| (a.to_string(), (token_price * a).to_string()))
+    .map(|a| (a.to_string(), ((token_price * a) as u64).to_string()))
     .collect();
     fetch_jupiter_quotes_inner(runner, token, amounts).await
 }
 
 async fn fetch_jupiter_quotes_inner(
     runner: &FunctionRunner,
-    token: TokenInput,
+    token: &TokenInput,
     amounts: Vec<(String, String)>,
 ) -> Result<Vec<JupiterSwapQuoteResponse>> {
     let x = JupiterSwapClient::new(Some("TOKEN".to_string()));
 
     let usdc_token = TokenInput {
-        address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v".to_string(),
+        address: USDC_MINT.to_string(),
         decimals: 6,
     };
 
     let mut quote_requests = vec![];
 
     for (amount, pair_amount) in amounts.iter() {
-        quote_requests.push(x.get_quote(&usdc_token, &token, amount, None));
-        quote_requests.push(x.get_quote(&usdc_token, &token, pair_amount, None));
+        quote_requests.push(x.get_quote(&usdc_token, token, amount, None));
+        quote_requests.push(x.get_quote(&usdc_token, token, pair_amount, None));
     }
 
     let mut results = vec![];
@@ -64,6 +66,7 @@ async fn fetch_jupiter_quotes_inner(
 
     for q in quote_results.into_iter() {
         if q.is_err() {
+            panic!("{:?}", q);
             runner.emit_error(33).await?;
         } else {
             results.push(q.unwrap());
@@ -124,6 +127,46 @@ pub async fn fetch_jupiter_prices(
     println!("{:?}", response);
 
     Ok(response.data)
+}
+
+pub fn estimate_price_from_quote(quote: &JupiterSwapQuoteResponse, token: &TokenInput) -> f64 {
+    if &quote.input_mint == USDC_MINT {
+        let in_amount = normalize_and_convert_to_f64(quote.in_amount, 6);
+        let out_amount = normalize_and_convert_to_f64(quote.out_amount, token.decimals);
+        in_amount / out_amount
+    } else {
+        let in_amount = normalize_and_convert_to_f64(quote.in_amount, token.decimals);
+        let out_amount = normalize_and_convert_to_f64(quote.out_amount, 6);
+        in_amount / out_amount
+    }
+}
+
+pub fn calculate_avg_price_and_std_dev(
+    quotes: &Vec<JupiterSwapQuoteResponse>,
+    token: &TokenInput,
+) -> (f64, f64) {
+    let prices: Vec<f64> = quotes
+        .iter()
+        .map(|q| estimate_price_from_quote(&q, token))
+        .collect();
+
+    let mean = prices.iter().sum::<f64>() / (prices.len() as f64);
+    let variance: f64 = prices
+        .iter()
+        .map(|p| {
+            let diff = p - mean;
+            diff * diff
+        })
+        .sum();
+
+    let std_dev = variance.sqrt();
+
+    (mean, std_dev)
+}
+
+fn normalize_and_convert_to_f64(value: u64, decimal_places: u32) -> f64 {
+    let divisor = 10u64.pow(decimal_places) as f64;
+    (value as f64) / divisor
 }
 
 #[derive(Clone, Debug, Deserialize)]
