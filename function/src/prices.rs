@@ -4,8 +4,7 @@ use futures::future::join_all;
 use pyth_sdk::Price;
 use pyth_sdk_solana::load_price_feed_from_account;
 
-use serde::{Deserialize, Serialize};
-use serde_json::{Number, Value};
+use serde::Deserialize;
 pub use switchboard_solana::prelude::*;
 use switchboard_utils::{
     handle_reqwest_err,
@@ -16,9 +15,9 @@ use switchboard_utils::{
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 use switchboard_solana::{solana_client::nonblocking::rpc_client::RpcClient, solana_sdk::pubkey};
-use tokio::{join, try_join};
 
 pub const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+pub const JUPITER_TOKEN: &str = "TOKEN";
 
 pub async fn fetch_jupiter_quotes(
     runner: &FunctionRunner,
@@ -47,7 +46,7 @@ async fn fetch_jupiter_quotes_inner(
     token: &TokenInput,
     amounts: Vec<(String, String)>,
 ) -> Result<Vec<JupiterSwapQuoteResponse>> {
-    let x = JupiterSwapClient::new(Some("TOKEN".to_string()));
+    let x = JupiterSwapClient::new(Some(JUPITER_TOKEN.to_string()));
 
     let usdc_token = TokenInput {
         address: USDC_MINT.to_string(),
@@ -66,7 +65,6 @@ async fn fetch_jupiter_quotes_inner(
 
     for q in quote_results.into_iter() {
         if q.is_err() {
-            panic!("{:?}", q);
             runner.emit_error(33).await?;
         } else {
             results.push(q.unwrap());
@@ -129,14 +127,14 @@ pub async fn fetch_jupiter_prices(
     Ok(response.data)
 }
 
-pub fn estimate_price_from_quote(quote: &JupiterSwapQuoteResponse, token: &TokenInput) -> f64 {
+pub fn estimate_price_from_quote(quote: &JupiterSwapQuoteResponse, token: &TokenInput, usdc_price: f64) -> f64 {
     if &quote.input_mint == USDC_MINT {
-        let in_amount = normalize_and_convert_to_f64(quote.in_amount, 6);
+        let in_amount = normalize_and_convert_to_f64(quote.in_amount, 6) * usdc_price;
         let out_amount = normalize_and_convert_to_f64(quote.out_amount, token.decimals);
         in_amount / out_amount
     } else {
         let in_amount = normalize_and_convert_to_f64(quote.in_amount, token.decimals);
-        let out_amount = normalize_and_convert_to_f64(quote.out_amount, 6);
+        let out_amount = normalize_and_convert_to_f64(quote.out_amount, 6) * usdc_price;
         in_amount / out_amount
     }
 }
@@ -144,10 +142,11 @@ pub fn estimate_price_from_quote(quote: &JupiterSwapQuoteResponse, token: &Token
 pub fn calculate_avg_price_and_std_dev(
     quotes: &Vec<JupiterSwapQuoteResponse>,
     token: &TokenInput,
+    usdc_price: f64
 ) -> (f64, f64) {
     let prices: Vec<f64> = quotes
         .iter()
-        .map(|q| estimate_price_from_quote(&q, token))
+        .map(|q| estimate_price_from_quote(&q, token, usdc_price))
         .collect();
 
     let mean = prices.iter().sum::<f64>() / (prices.len() as f64);

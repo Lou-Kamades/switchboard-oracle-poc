@@ -32,7 +32,7 @@ describe("oracle-poc", () => {
   before(async () => {
     program = new anchor.Program(
       IDL,
-      new PublicKey("54L5cghsGTgT3kuvJf3qSErjURLqvk478EFXtX8m63Ao"),
+      new PublicKey("4wWJ4jVDKfyANKFfmZwyAirJdb6DX1qfWu3JP6QqrjQF"),
       provider
     );
     switchboardProgram = await SwitchboardProgram.fromProvider(provider);

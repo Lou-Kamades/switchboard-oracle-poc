@@ -19,7 +19,7 @@ const_assert_eq!(
     size_of::<OracleContainer>(),
     size_of::<OracleData>() * 16 + 16
 );
-const_assert_eq!(size_of::<OracleContainer>(), 4880); // PDA limit is 10KB, we can go up to 10MB if we use an on-curve account.
+const_assert_eq!(size_of::<OracleContainer>(), 2832); // PDA limit is 10KB, we can go up to 10MB if we use an on-curve account.
 const_assert_eq!(size_of::<OracleContainer>() % 8, 0);
 
 impl OracleContainer {
@@ -51,14 +51,14 @@ impl OracleContainer {
     //     Ok(())
     // }
 
-    pub fn update_oracle(&mut self, oracle_name: &str, new_price: i128, slot: u64) -> Result<()> {
+    pub fn update_oracle(&mut self, oracle_name: &str, new_price: f64, std_deviation: f64, slot: u64) -> Result<()> {
         let oracle_name_bytes = name_from_str(oracle_name)?;
         let oracle = self
             .oracles
             .iter_mut()
             .find(|o| o.name == oracle_name_bytes)
             .ok_or(OracleError::OracleNotFound)?;
-        oracle.update(new_price, slot)?;
+        oracle.update(new_price, std_deviation, slot)?;
         Ok(())
     }
 }

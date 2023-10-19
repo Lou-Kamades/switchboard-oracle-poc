@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use switchboard_solana::FunctionAccountData;
 
-use crate::{state::OracleContainer, ORACLE_SEED, PROGRAM_SEED};
+use crate::{state::OracleContainer, POC_ORACLE_SEED, PROGRAM_SEED};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -18,7 +18,7 @@ pub struct Initialize<'info> {
         init,
         space = 8 + std::mem::size_of::<OracleContainer>(),
         payer = authority,
-        seeds = [ORACLE_SEED],
+        seeds = [POC_ORACLE_SEED],
         bump
     )]
     pub oracle_container: AccountLoader<'info, OracleContainer>,

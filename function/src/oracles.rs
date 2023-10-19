@@ -4,11 +4,8 @@ use solana_account_decoder::UiAccountEncoding;
 pub use switchboard_solana::prelude::*;
 use switchboard_solana::solana_client::{
     nonblocking::rpc_client::RpcClient,
-    rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-    rpc_filter::{Memcmp, RpcFilterType},
+    rpc_config::RpcAccountInfoConfig,
 };
-
-use oracle_poc::ORACLE_SEED;
 
 #[allow(hidden_glob_reexports)]
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;

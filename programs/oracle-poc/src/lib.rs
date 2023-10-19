@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("54L5cghsGTgT3kuvJf3qSErjURLqvk478EFXtX8m63Ao");
+declare_id!("4wWJ4jVDKfyANKFfmZwyAirJdb6DX1qfWu3JP6QqrjQF");
 
 pub mod instructions;
 pub mod state;
@@ -9,7 +9,7 @@ pub mod state;
 pub use instructions::*;
 
 pub const PROGRAM_SEED: &[u8] = b"ORACLEPOC";
-pub const ORACLE_SEED: &[u8] = b"ORACLE";
+pub const POC_ORACLE_SEED: &[u8] = b"ORACLE";
 
 #[program]
 pub mod oracle_poc {

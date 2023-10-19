@@ -1,13 +1,13 @@
 use anchor_lang::prelude::*;
 
-use crate::{state::OracleContainer, ProgramState, ORACLE_SEED, PROGRAM_SEED};
+use crate::{state::OracleContainer, ProgramState, POC_ORACLE_SEED, PROGRAM_SEED};
 
 #[derive(Accounts)]
 #[instruction(params: AddOracleParams)]
 pub struct AddOracle<'info> {
     #[account(
         mut,
-        seeds = [ORACLE_SEED],
+        seeds = [POC_ORACLE_SEED],
         bump
     )]
     pub oracle_container: AccountLoader<'info, OracleContainer>,

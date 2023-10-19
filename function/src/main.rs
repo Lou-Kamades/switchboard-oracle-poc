@@ -1,12 +1,12 @@
-#![feature(async_fn_in_trait)]
-use pyth_sdk::Price;
-
 pub use switchboard_solana::prelude::*;
 
 pub mod oracles;
 pub mod prices;
 
-use oracle_poc::{state::OracleData, UpdateOracleParams, ORACLE_SEED, PROGRAM_SEED};
+use oracle_poc::{state::OracleData, UpdateOracleParams, PROGRAM_SEED, POC_ORACLE_SEED};
+
+
+pub const DEVNET_RPC_URL: &str = "devnet-url";
 
 #[allow(hidden_glob_reexports)]
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -18,7 +18,7 @@ use switchboard_utils::protos::TokenInput;
 
 use crate::{
     oracles::{fetch_oracle_by_name, fetch_oracles_by_name},
-    prices::{fetch_jupiter_quotes, fetch_usd_price_from_pyth},
+    prices::{fetch_jupiter_quotes, fetch_usd_price_from_pyth, calculate_avg_price_and_std_dev},
 };
 
 // TODO: function to fetch all existing oracles
@@ -31,28 +31,31 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
     };
 
     let jupiter_quotes = fetch_jupiter_quotes(runner, &sol_token).await?;
+    let pyth_usd_price = fetch_usd_price_from_pyth(&rpc_client, runner).await?;
+    let usdc_price = (pyth_usd_price.price as f64) * 10f64.powf(pyth_usd_price.expo as f64); // TODO: safer math
 
-    // println!("jup prices: {:?}", jupiter_prices);
-    println!("got jupiter price");
+    let (avg_price, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token, usdc_price);
+
+    println!("avg price: {:?}, std dev: {:?}", avg_price, std_dev);
 
     // failover fetch Orca price?
 
-    let pyth_usd_price = fetch_usd_price_from_pyth(&rpc_client, runner).await?;
     let oracle_names = vec!["1".to_string()];
 
-    let devnet_url = "devnet-url".to_string();
-    let devnet_client = RpcClient::new(devnet_url);
 
-    println!("fetching oracles");
-    let oracles = fetch_oracles_by_name(&devnet_client, oracle_names).await?; // TODO: env var?
-    println!("oracles: {:?}", oracles);
+
+    // let devnet_client = RpcClient::new(DEVNET_RPC_URL.to_string());// TODO: env var?
+    // println!("fetching oracles");
+    // let oracles = fetch_oracles_by_name(&devnet_client, oracle_names).await?;
+    // println!("oracles: {:?}", oracles);
 
     // Then, write your own Rust logic and build a Vec of instructions.
     // Should be under 700 bytes after serialization
     let mut ixs = vec![];
     // for oracle in oracles { // todo : fix
-    let ix = create_update_ix(runner, &pyth_usd_price, "1".to_string());
+    let ix = create_update_ix(runner, avg_price, std_dev, "1".to_string());
     println!("ix len: {:?}", ix.data.len());
+    println!("ix: {:?}", ix);
     ixs.push(ix);
     // }
 
@@ -82,14 +85,16 @@ async fn main() -> Result<()> {
 
 pub fn create_update_ix(
     runner: &FunctionRunner,
-    pyth_price: &Price,
+    price: f64,
+    std_deviation: f64,
     oracle_name: String,
 ) -> Instruction {
-    let (oracle_key, _) = Pubkey::find_program_address(&[ORACLE_SEED], &oracle_poc::ID);
+    let (oracle_key, _) = Pubkey::find_program_address(&[POC_ORACLE_SEED], &oracle_poc::ID);
     let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
     let params = UpdateOracleParams {
-        price_raw: pyth_price.price,
-        oracle_name,
+        price,
+        std_deviation,
+        oracle_name
     };
 
     Instruction {
@@ -111,7 +116,8 @@ pub fn create_update_ix(
 
 #[cfg(test)]
 mod tests {
-    use oracle_poc::ORACLE_SEED;
+    use oracle_poc::{POC_ORACLE_SEED, PROGRAM_SEED};
+    use solana_sdk::pubkey;
     use switchboard_solana::{
         solana_client::nonblocking::rpc_client::RpcClient, FunctionRunner, Pubkey,
     };
@@ -171,44 +177,58 @@ mod tests {
     //     x.unwrap();
     // }
 
-    #[tokio::test]
-    async fn test_fetch_jupiter_quotes() {
-        let runner = setup_runner().unwrap();
-        let sol_token = TokenInput {
-            address: "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac".to_string(),
-            decimals: 6,
-        };
+    // #[tokio::test]
+    // async fn test_fetch_jupiter_quotes() {
+    //     let runner = setup_runner().unwrap();
+    //     let sol_token = TokenInput {
+    //         address: "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac".to_string(),
+    //         decimals: 6,
+    //     };
 
-        // let sol_token = TokenInput {
-        //     address: "So11111111111111111111111111111111111111112".to_string(),
-        //     decimals: 9,
-        // };
+    //     // let sol_token = TokenInput {
+    //     //     address: "So11111111111111111111111111111111111111112".to_string(),
+    //     //     decimals: 9,
+    //     // };
 
-        let jupiter_quotes = fetch_jupiter_quotes(&runner, &sol_token).await.unwrap();
+    //     let jupiter_quotes = fetch_jupiter_quotes(&runner, &sol_token).await.unwrap();
 
-        let (mean, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token);
+    //     let (mean, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token);
 
-        println!("{:?} {:?}", mean, std_dev);
-        // for q in jupiter_quotes {
-        //     println!("{:?}", estimate_price_from_quote(&q, &sol_token));
-        //     println!("{:?}", q);
-        // }
-    }
+    //     println!("{:?} {:?}", mean, std_dev);
+    //     // for q in jupiter_quotes {
+    //     //     println!("{:?}", estimate_price_from_quote(&q, &sol_token));
+    //     //     println!("{:?}", q);
+    //     // }
+    // }
 
     // #[tokio::test]
     // async fn test_fetch_pyth_price() {
     //     let rpc_url = "http:/pythnet.rpcpool.com".to_string();
     //     let rpc_client = RpcClient::new(rpc_url);
     //     let runner = setup_runner().unwrap();
-    //     let price = fetch_usd_price_from_pyth(rpc_client, &runner)
+    //     let price = fetch_usd_price_from_pyth(&rpc_client, &runner)
     //         .await
     //         .unwrap();
     //     println!("{:?}", price);
+    // let usdc_price = (price.price as f64) * 10f64.powf(price.expo as f64); // TODO: safer math
+    // println!("{:?}", usdc_price);
+    // }
+
+    // #[test]
+    // fn test_addresses() {
+    //     let (oracle_key, _) = Pubkey::find_program_address(&[POC_ORACLE_SEED], &oracle_poc::ID);
+    //     let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
+    //     let (goo, _) = Pubkey::find_program_address(&[POC_ORACLE_SEED], &pubkey!("54L5cghsGTgT3kuvJf3qSErjURLqvk478EFXtX8m63Ao"));
+    //     println!("{:?}", oracle_key);
+    //     println!("{:?}", program_state);
+    //     println!("{:?}", goo);
+
+    //     //DYG5dW84SxTgdxLswo3BVijsvEfkJZnaRTtcHXn9tw1q
     // }
 
     // #[tokio::test]
     // async fn test_fetch_oracles() {
-    //     let rpc_url = "devnet-url".to_string();
+    //     let rpc_url = DEVNET_RPC_URL.to_string();
     //     let rpc_client = RpcClient::new(rpc_url);
     //     let oracle_names = vec![
     //         "New3".to_string(),

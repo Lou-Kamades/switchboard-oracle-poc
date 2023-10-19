@@ -18,7 +18,7 @@ async function main() {
   // TODO: why is anchor workspace empty?
   const program: anchor.Program<OraclePoc> = new anchor.Program(
     IDL,
-    new PublicKey("54L5cghsGTgT3kuvJf3qSErjURLqvk478EFXtX8m63Ao"),
+    new PublicKey("4wWJ4jVDKfyANKFfmZwyAirJdb6DX1qfWu3JP6QqrjQF"),
     provider
   );
   const [programStatePubkey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -31,6 +31,7 @@ async function main() {
     [Buffer.from("ORACLE")],
     program.programId
   );
+  console.log(`ORACLE_CONTAINER: ${oracleContainer}`);
 
   const signature = await program.methods
     .addOracle({ name: ORACLE_NAME })
