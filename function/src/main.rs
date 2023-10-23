@@ -3,8 +3,7 @@ pub use switchboard_solana::prelude::*;
 pub mod oracles;
 pub mod prices;
 
-use oracle_poc::{state::OracleData, UpdateOracleParams, PROGRAM_SEED, POC_ORACLE_SEED};
-
+use oracle_poc::{state::OracleData, UpdateOracleParams, POC_ORACLE_SEED, PROGRAM_SEED};
 
 pub const DEVNET_RPC_URL: &str = "devnet-url";
 
@@ -29,16 +28,22 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
         decimals: 9,
     };
 
-    let prices = fetch_prices(&rpc_client, runner, vec!["So11111111111111111111111111111111111111112"]).await?;
+    let prices = fetch_prices(
+        &rpc_client,
+        runner,
+        vec!["So11111111111111111111111111111111111111112"],
+    )
+    .await?;
+    let price = prices
+        .get("So11111111111111111111111111111111111111112")
+        .unwrap();
 
     // let (avg_price, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token, usdc_price);
     // println!("avg price: {:?}, std dev: {:?}", avg_price, std_dev);
 
     // failover fetch Orca price?
 
-    let oracle_names = vec!["1".to_string()];
-
-
+    // let oracle_names = vec!["1".to_string()];
 
     // let devnet_client = RpcClient::new(DEVNET_RPC_URL.to_string());// TODO: env var?
     // println!("fetching oracles");
@@ -49,10 +54,10 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
     // Should be under 700 bytes after serialization
     let mut ixs = vec![];
     // for oracle in oracles { // todo : fix
-    // let ix = create_update_ix(runner, avg_price, std_dev, "1".to_string());
-    // println!("ix len: {:?}", ix.data.len());
-    // println!("ix: {:?}", ix);
-    // ixs.push(ix);
+    let ix = create_update_ix(runner, price.price, "1".to_string());
+    println!("ix len: {:?}", ix.data.len());
+    println!("ix: {:?}", ix);
+    ixs.push(ix);
     // }
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
@@ -79,19 +84,10 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub fn create_update_ix(
-    runner: &FunctionRunner,
-    price: f64,
-    std_deviation: f64,
-    oracle_name: String,
-) -> Instruction {
+pub fn create_update_ix(runner: &FunctionRunner, price: f64, oracle_name: String) -> Instruction {
     let (oracle_key, _) = Pubkey::find_program_address(&[POC_ORACLE_SEED], &oracle_poc::ID);
     let (program_state, _) = Pubkey::find_program_address(&[PROGRAM_SEED], &oracle_poc::ID);
-    let params = UpdateOracleParams {
-        price,
-        std_deviation,
-        oracle_name
-    };
+    let params = UpdateOracleParams { price, oracle_name };
 
     Instruction {
         program_id: oracle_poc::ID,
@@ -162,33 +158,69 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_jupiter_prices() {
-        let x = fetch_jupiter_prices(vec![
-            // "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-            // "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
-            // "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
-            // "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-            // "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
-            "So11111111111111111111111111111111111111112",
-        ])
+        let x = fetch_jupiter_prices(
+            vec![
+                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+                "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
+                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+                "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+                "So11111111111111111111111111111111111111112",
+                "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+            ],
+            None,
+        )
         .await;
 
         println!("{:?}", x.unwrap());
 
-        let runner = setup_runner().unwrap();
-            let rpc_url = "http:/pythnet.rpcpool.com".to_string();
-        let rpc_client = RpcClient::new(rpc_url);
-
-        let y = fetch_prices(&rpc_client, &runner, vec![
-            // "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-            // "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
-            // "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
-            // "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-            // "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
-            "So11111111111111111111111111111111111111112",
-        ])
+        let y = fetch_jupiter_prices(
+            vec![
+                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+                "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
+                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+                "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+                "So11111111111111111111111111111111111111112",
+                "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+            ],
+            Some("BTC"),
+        )
         .await;
 
         println!("{:?}", y.unwrap());
+
+        let z = fetch_jupiter_prices(
+            vec![
+                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+                "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
+                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+                "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+                "So11111111111111111111111111111111111111112",
+                "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+            ],
+            Some("ETH"),
+        )
+        .await;
+
+        println!("{:?}", z.unwrap());
+
+        // let runner = setup_runner().unwrap();
+        //     let rpc_url = "http:/pythnet.rpcpool.com".to_string();
+        // let rpc_client = RpcClient::new(rpc_url);
+
+        // let y = fetch_prices(&rpc_client, &runner, vec![
+        //     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        //     "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+        //     "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
+        //     "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+        //     "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+        //     "So11111111111111111111111111111111111111112",
+        // ], Some("BTC"))
+        // .await;
+
+        // println!("{:?}", y.unwrap());
     }
 
     // #[tokio::test]

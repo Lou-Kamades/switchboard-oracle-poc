@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use pyth_sdk_solana::load_price_feed_from_account;
+use std::collections::HashMap;
 
 use serde::Deserialize;
 pub use switchboard_solana::prelude::*;
@@ -18,19 +18,21 @@ pub const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 pub const PYTH_USDC_ADDRESS: Pubkey = pubkey!("Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD");
 pub const JUPITER_TOKEN: &str = "TOKEN";
 
-
 pub async fn fetch_prices(
     rpc_client: &RpcClient,
     runner: &FunctionRunner,
     token_mints: Vec<&str>,
 ) -> Result<HashMap<String, JupiterTokenPrice>> {
-    let price_future = try_join!(fetch_jupiter_prices(token_mints), fetch_usdc_price_from_pyth(&rpc_client, runner));
+    let price_future = try_join!(
+        fetch_jupiter_prices(token_mints, None),
+        fetch_usdc_price_from_pyth(&rpc_client, runner)
+    );
 
     if price_future.is_err() {
         runner.emit_error(23).await?;
     }
 
-    let (mut jupiter_prices, usdc_price) = price_future?; 
+    let (mut jupiter_prices, usdc_price) = price_future?;
     for (_, price) in jupiter_prices.iter_mut() {
         price.price *= usdc_price;
     }
@@ -41,9 +43,17 @@ pub async fn fetch_prices(
 /// Uses the V4 Jupiter price API. All prices are relative to USDC.
 pub async fn fetch_jupiter_prices(
     token_mints: Vec<&str>,
+    vs_token: Option<&str>,
 ) -> Result<HashMap<String, JupiterTokenPrice>> {
     let mint_string = token_mints.join("%2C");
-    let url = format!("https://quote-api.jup.ag/v4/price?ids={}&vsToken=USDC&token={}", mint_string, JUPITER_TOKEN);
+    let quote_token = match vs_token {
+        Some(t) => t,
+        None => "USDC",
+    };
+    let url = format!(
+        "https://quote-api.jup.ag/v4/price?ids={}&vsToken={}&token={}",
+        mint_string, quote_token, JUPITER_TOKEN
+    );
     let response = reqwest::get(url)
         .await
         .map_err(handle_reqwest_err)?
@@ -84,12 +94,9 @@ pub async fn fetch_usdc_price_from_pyth(
     Ok(usdc_price)
 }
 
-
 pub async fn fetch_orca_prices(_runner: &FunctionRunner) -> Result<()> {
     unimplemented!("LpExchangeRateTask");
 }
-
-
 
 // pub async fn fetch_jupiter_quotes(
 //     runner: &FunctionRunner,
@@ -146,7 +153,6 @@ pub async fn fetch_orca_prices(_runner: &FunctionRunner) -> Result<()> {
 
 //     Ok(results)
 // }
-
 
 // pub fn estimate_price_from_quote(quote: &JupiterSwapQuoteResponse, token: &TokenInput, usdc_price: f64) -> f64 {
 //     if &quote.input_mint == USDC_MINT {

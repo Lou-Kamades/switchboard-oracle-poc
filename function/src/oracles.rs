@@ -3,8 +3,7 @@ use oracle_poc::state::{OracleContainer, OracleData};
 use solana_account_decoder::UiAccountEncoding;
 pub use switchboard_solana::prelude::*;
 use switchboard_solana::solana_client::{
-    nonblocking::rpc_client::RpcClient,
-    rpc_config::RpcAccountInfoConfig,
+    nonblocking::rpc_client::RpcClient, rpc_config::RpcAccountInfoConfig,
 };
 
 #[allow(hidden_glob_reexports)]

@@ -4,10 +4,12 @@ import dotenv from "dotenv";
 import { IDL, OraclePoc } from "../target/types/oracle_poc";
 dotenv.config();
 
+
+const ORACLE_NAME = "1";
+const ORACLE_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"); // devnet USDC
+
 async function main() {
   console.log(`Adding Oracle`);
-
-  const ORACLE_NAME = "1";
 
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
@@ -18,7 +20,7 @@ async function main() {
   // TODO: why is anchor workspace empty?
   const program: anchor.Program<OraclePoc> = new anchor.Program(
     IDL,
-    new PublicKey("4wWJ4jVDKfyANKFfmZwyAirJdb6DX1qfWu3JP6QqrjQF"),
+    new PublicKey("GknYjbiQABncTa8JwStdHRX1t1UZArjdAoaRTrccfhdR"),
     provider
   );
   const [programStatePubkey] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -37,6 +39,7 @@ async function main() {
     .addOracle({ name: ORACLE_NAME })
     .accounts({
       oracleContainer,
+      oracleMint: ORACLE_MINT,
       program: programStatePubkey,
       authority: payer.publicKey,
     })

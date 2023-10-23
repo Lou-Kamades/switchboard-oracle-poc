@@ -2569,6 +2569,7 @@ name = "oracle-poc"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
  "static_assertions",
  "switchboard-solana",
 ]

@@ -20,7 +20,7 @@ async function main() {
   // TODO: why is anchor workspace empty?
   const program: anchor.Program<OraclePoc> = new anchor.Program(
     IDL,
-    new PublicKey("4wWJ4jVDKfyANKFfmZwyAirJdb6DX1qfWu3JP6QqrjQF"),
+    new PublicKey("GknYjbiQABncTa8JwStdHRX1t1UZArjdAoaRTrccfhdR"),
     provider
   );
   const [programStatePubkey] = anchor.web3.PublicKey.findProgramAddressSync(
