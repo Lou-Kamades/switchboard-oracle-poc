@@ -19,11 +19,11 @@ const_assert_eq!(
     size_of::<OracleContainer>(),
     size_of::<OracleData>() * 16 + 16
 );
-const_assert_eq!(size_of::<OracleContainer>(), 2832); // PDA limit is 10KB, we can go up to 10MB if we use an on-curve account.
+const_assert_eq!(size_of::<OracleContainer>(), 3344); // PDA limit is 10KB, we can go up to 10MB if we use an on-curve account.
 const_assert_eq!(size_of::<OracleContainer>() % 8, 0);
 
 impl OracleContainer {
-    pub fn add_oracle(&mut self, oracle_name: &str) -> Result<()> {
+    pub fn add_oracle(&mut self, oracle_name: &str, oracle_mint: Pubkey) -> Result<()> {
         let index = self.num_oracles;
         let oracle_name_bytes = name_from_str(oracle_name)?;
         require!(index < 15, OracleError::OracleContainerFull);
@@ -33,6 +33,7 @@ impl OracleContainer {
         );
 
         self.oracles[index as usize].name = oracle_name_bytes;
+        self.oracles[index as usize].mint = oracle_mint;
         self.num_oracles += 1;
         Ok(())
     }
@@ -51,14 +52,14 @@ impl OracleContainer {
     //     Ok(())
     // }
 
-    pub fn update_oracle(&mut self, oracle_name: &str, new_price: f64, std_deviation: f64, slot: u64) -> Result<()> {
+    pub fn update_oracle(&mut self, oracle_name: &str, new_price: f64, slot: u64) -> Result<()> {
         let oracle_name_bytes = name_from_str(oracle_name)?;
         let oracle = self
             .oracles
             .iter_mut()
             .find(|o| o.name == oracle_name_bytes)
             .ok_or(OracleError::OracleNotFound)?;
-        oracle.update(new_price, std_deviation, slot)?;
+        oracle.update(new_price, slot)?;
         Ok(())
     }
 }
@@ -71,8 +72,9 @@ mod tests {
     pub fn test_add_oracle() {
         let mut oracle_container = OracleContainer::default();
         let name = "TEST".to_string();
+        let key = Pubkey::new_unique();
 
-        oracle_container.add_oracle(&name).unwrap();
+        oracle_container.add_oracle(&name, key).unwrap();
         assert_eq!(
             oracle_container.oracles[0].name,
             name_from_str(&name).unwrap()
@@ -83,9 +85,10 @@ mod tests {
     pub fn test_add_oracle_already_added() {
         let mut oracle_container = OracleContainer::default();
         let name = "TEST".to_string();
+        let key = Pubkey::new_unique();
 
-        oracle_container.add_oracle(&name).unwrap();
-        let res = oracle_container.add_oracle(&name);
+        oracle_container.add_oracle(&name, key).unwrap();
+        let res = oracle_container.add_oracle(&name, key);
 
         assert!(res.is_err());
         assert_eq!(res.err().unwrap(), OracleError::OracleAlreadyAdded.into());
@@ -111,22 +114,24 @@ mod tests {
         let o = "o".to_string();
         let p = "p".to_string();
 
-        oracle_container.add_oracle(&a).unwrap();
-        oracle_container.add_oracle(&b).unwrap();
-        oracle_container.add_oracle(&c).unwrap();
-        oracle_container.add_oracle(&d).unwrap();
-        oracle_container.add_oracle(&e).unwrap();
-        oracle_container.add_oracle(&f).unwrap();
-        oracle_container.add_oracle(&g).unwrap();
-        oracle_container.add_oracle(&h).unwrap();
-        oracle_container.add_oracle(&i).unwrap();
-        oracle_container.add_oracle(&j).unwrap();
-        oracle_container.add_oracle(&k).unwrap();
-        oracle_container.add_oracle(&l).unwrap();
-        oracle_container.add_oracle(&m).unwrap();
-        oracle_container.add_oracle(&n).unwrap();
-        oracle_container.add_oracle(&o).unwrap();
-        let res = oracle_container.add_oracle(&p);
+        let key = Pubkey::new_unique();
+
+        oracle_container.add_oracle(&a, key).unwrap();
+        oracle_container.add_oracle(&b, key).unwrap();
+        oracle_container.add_oracle(&c, key).unwrap();
+        oracle_container.add_oracle(&d, key).unwrap();
+        oracle_container.add_oracle(&e, key).unwrap();
+        oracle_container.add_oracle(&f, key).unwrap();
+        oracle_container.add_oracle(&g, key).unwrap();
+        oracle_container.add_oracle(&h, key).unwrap();
+        oracle_container.add_oracle(&i, key).unwrap();
+        oracle_container.add_oracle(&j, key).unwrap();
+        oracle_container.add_oracle(&k, key).unwrap();
+        oracle_container.add_oracle(&l, key).unwrap();
+        oracle_container.add_oracle(&m, key).unwrap();
+        oracle_container.add_oracle(&n, key).unwrap();
+        oracle_container.add_oracle(&o, key).unwrap();
+        let res = oracle_container.add_oracle(&p, key);
 
         assert!(res.is_err());
         assert_eq!(res.err().unwrap(), OracleError::OracleContainerFull.into());

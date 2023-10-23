@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 
 use crate::{state::OracleContainer, ProgramState, POC_ORACLE_SEED, PROGRAM_SEED};
 
@@ -11,6 +12,8 @@ pub struct AddOracle<'info> {
         bump
     )]
     pub oracle_container: AccountLoader<'info, OracleContainer>,
+
+    pub oracle_mint: Box<Account<'info, Mint>>,
 
     #[account(
         mut,
@@ -33,7 +36,7 @@ pub struct AddOracleParams {
 
 pub fn add_oracle(ctx: Context<AddOracle>, params: AddOracleParams) -> anchor_lang::Result<()> {
     let oracle_container = &mut ctx.accounts.oracle_container.load_mut()?;
-    oracle_container.add_oracle(&params.name)?;
+    oracle_container.add_oracle(&params.name, ctx.accounts.oracle_mint.key())?;
     msg!("added oracle: {:?}", params);
     Ok(())
 }

@@ -31,8 +31,7 @@ pub struct UpdateOracle<'info> {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateOracleParams {
     pub price: f64,
-    pub std_deviation: f64,
-    pub oracle_name: String,
+    pub oracle_name: String
 }
 
 pub fn update_oracle(
@@ -51,7 +50,7 @@ pub fn update_oracle(
 
     let oracle_container = &mut ctx.accounts.oracle_container.load_mut()?;
     let slot = Clock::get()?.slot;
-    oracle_container.update_oracle(&params.oracle_name, params.price, params.std_deviation, slot)?;
+    oracle_container.update_oracle(&params.oracle_name, params.price, slot)?;
     msg!("updated oracle: {:?}", params);
     Ok(())
 }

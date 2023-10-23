@@ -64,4 +64,7 @@ pub enum OracleError {
 
     #[msg("Oracle not found")]
     OracleNotFound,
+
+    #[msg("Cannot update oracle with a price that is <= 0")]
+    InvalidOraclePrice,
 }

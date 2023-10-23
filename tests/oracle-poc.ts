@@ -2,11 +2,13 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { IDL, OraclePoc } from "../target/types/oracle_poc";
 import {
+  Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
+import { MINT_SIZE, TOKEN_PROGRAM_ID, createInitializeMintInstruction, createMint, getMinimumBalanceForRentExemptMint } from '@solana/spl-token'
 import {
   AttestationQueueAccount,
   FunctionAccount,
@@ -22,6 +24,7 @@ describe("oracle-poc", () => {
   let attestationQueueAccount: AttestationQueueAccount;
   let functionAccount: FunctionAccount;
   let functionInit: TransactionObject;
+  let mintPubkey: PublicKey;
   let oracleContainer: PublicKey;
 
   const ORACLE_NAME = "TEST";
@@ -85,11 +88,37 @@ describe("oracle-poc", () => {
     console.log(`Initialize : ${signature}`);
   });
 
+  it ("Inits a mint for the Program", async () => {
+    const mint = Keypair.generate();
+    mintPubkey = mint.publicKey
+
+    let tx = new Transaction().add(
+      // create mint account
+      SystemProgram.createAccount({
+        fromPubkey: provider.wallet.publicKey,
+        newAccountPubkey: mint.publicKey,
+        space: MINT_SIZE,
+        lamports: await getMinimumBalanceForRentExemptMint(provider.connection),
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      // init mint account
+      createInitializeMintInstruction(
+        mint.publicKey, // mint pubkey
+        8, // decimals
+         provider.wallet.publicKey, // mint authority
+         provider.wallet.publicKey // freeze authority (you can use `null` to disable it. when you disable it, you can't turn it on again)
+      )
+    );
+
+    await provider.sendAndConfirm(tx, [mint])
+  })
+
   it("Can add an oracle", async () => {
     const signature = await program.methods
       .addOracle({ name: ORACLE_NAME })
       .accounts({
         oracleContainer,
+        oracleMint: mintPubkey,
         program: programStatePubkey,
         authority: provider.wallet.publicKey,
       })
@@ -101,7 +130,7 @@ describe("oracle-poc", () => {
   it("Can update an oracle", async () => {
     const signature = await program.methods
       .updateOracle({
-        priceRaw: new anchor.BN(11),
+        price: 11.1,
         oracleName: ORACLE_NAME,
       })
       .accounts({
