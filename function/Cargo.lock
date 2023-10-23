@@ -1542,7 +1542,6 @@ name = "function"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "futures",
  "oracle-poc",
  "pyth-sdk",
  "pyth-sdk-solana",

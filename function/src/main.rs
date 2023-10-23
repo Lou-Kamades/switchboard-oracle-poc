@@ -18,10 +18,9 @@ use switchboard_utils::protos::TokenInput;
 
 use crate::{
     oracles::{fetch_oracle_by_name, fetch_oracles_by_name},
-    prices::{fetch_jupiter_quotes, fetch_usd_price_from_pyth, calculate_avg_price_and_std_dev},
+    prices::fetch_prices,
 };
 
-// TODO: function to fetch all existing oracles
 // TODO: some criteria for deciding which oracles get an update
 
 pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<()> {
@@ -30,13 +29,10 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
         decimals: 9,
     };
 
-    let jupiter_quotes = fetch_jupiter_quotes(runner, &sol_token).await?;
-    let pyth_usd_price = fetch_usd_price_from_pyth(&rpc_client, runner).await?;
-    let usdc_price = (pyth_usd_price.price as f64) * 10f64.powf(pyth_usd_price.expo as f64); // TODO: safer math
+    let prices = fetch_prices(&rpc_client, runner, vec!["So11111111111111111111111111111111111111112"]).await?;
 
-    let (avg_price, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token, usdc_price);
-
-    println!("avg price: {:?}, std dev: {:?}", avg_price, std_dev);
+    // let (avg_price, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token, usdc_price);
+    // println!("avg price: {:?}, std dev: {:?}", avg_price, std_dev);
 
     // failover fetch Orca price?
 
@@ -53,10 +49,10 @@ pub async fn perform(runner: &FunctionRunner, rpc_client: RpcClient) -> Result<(
     // Should be under 700 bytes after serialization
     let mut ixs = vec![];
     // for oracle in oracles { // todo : fix
-    let ix = create_update_ix(runner, avg_price, std_dev, "1".to_string());
-    println!("ix len: {:?}", ix.data.len());
-    println!("ix: {:?}", ix);
-    ixs.push(ix);
+    // let ix = create_update_ix(runner, avg_price, std_dev, "1".to_string());
+    // println!("ix len: {:?}", ix.data.len());
+    // println!("ix: {:?}", ix);
+    // ixs.push(ix);
     // }
 
     // Finally, emit the signed quote and partially signed transaction to the functionRunner oracle
@@ -124,14 +120,11 @@ mod tests {
     use switchboard_utils::protos::TokenInput;
 
     use crate::{
-        create_update_ix, fetch_usd_price_from_pyth, get_ixn_discriminator,
+        create_update_ix, get_ixn_discriminator,
         oracles::{fetch_all_oracles, fetch_oracles_by_name},
         perform,
-        prices::{
-            calculate_avg_price_and_std_dev, estimate_price_from_quote, fetch_jupiter_prices,
-            fetch_jupiter_quotes,
-        },
-        Result,
+        prices::{fetch_jupiter_prices, fetch_prices},
+        Result, DEVNET_RPC_URL,
     };
 
     fn setup_runner() -> Result<FunctionRunner> {
@@ -167,34 +160,79 @@ mod tests {
     //     // println!("{:?}", ix);
     // }
 
-    // #[tokio::test]
-    // async fn test_fetch_jupiter_prices() {
-    //     let x = fetch_jupiter_prices(vec![
-    //         "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v".to_string(),
-    //         "SOL".to_string(),
-    //     ])
-    //     .await;
-    //     x.unwrap();
-    // }
+    #[tokio::test]
+    async fn test_fetch_jupiter_prices() {
+        let x = fetch_jupiter_prices(vec![
+            // "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            // "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+            // "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
+            // "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            // "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+            "So11111111111111111111111111111111111111112",
+        ])
+        .await;
+
+        println!("{:?}", x.unwrap());
+
+        let runner = setup_runner().unwrap();
+            let rpc_url = "http:/pythnet.rpcpool.com".to_string();
+        let rpc_client = RpcClient::new(rpc_url);
+
+        let y = fetch_prices(&rpc_client, &runner, vec![
+            // "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            // "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs",
+            // "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM",
+            // "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            // "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac",
+            "So11111111111111111111111111111111111111112",
+        ])
+        .await;
+
+        println!("{:?}", y.unwrap());
+    }
 
     // #[tokio::test]
     // async fn test_fetch_jupiter_quotes() {
     //     let runner = setup_runner().unwrap();
-    //     let sol_token = TokenInput {
+    //     let mngo_token = TokenInput {
     //         address: "MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac".to_string(),
     //         decimals: 6,
     //     };
 
-    //     // let sol_token = TokenInput {
-    //     //     address: "So11111111111111111111111111111111111111112".to_string(),
-    //     //     decimals: 9,
-    //     // };
+    //     let sol_token = TokenInput {
+    //         address: "So11111111111111111111111111111111111111112".to_string(),
+    //         decimals: 9,
+    //     };
 
-    //     let jupiter_quotes = fetch_jupiter_quotes(&runner, &sol_token).await.unwrap();
+    //     let eth_token = TokenInput {
+    //         address: "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs".to_string(),
+    //         decimals: 8,
+    //     };
 
-    //     let (mean, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token);
+    //     let msol_token = TokenInput {
+    //         address: "3JLPCS1qM2zRw3Dp6V4hZnYHd4toMNPkNesXdX9tg6KM".to_string(),
+    //         decimals: 9,
+    //     };
 
-    //     println!("{:?} {:?}", mean, std_dev);
+    //     let bonk_token = TokenInput {
+    //         address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263".to_string(),
+    //         decimals: 5,
+    //     };
+
+    //     // let jupiter_quotes = fetch_jupiter_quotes(&runner, &sol_token).await.unwrap();
+
+    //     let a = fetch_jupiter_quotes(&runner, &mngo_token);
+    //     let b = fetch_jupiter_quotes(&runner, &sol_token);
+    //     let c = fetch_jupiter_quotes(&runner, &eth_token);
+    //     // let d = fetch_jupiter_quotes(&runner, &msol_token);
+    //     // let e = fetch_jupiter_quotes(&runner, &bonk_token);
+
+    //     let x = join_all([a,b,c]).await;
+    //     println!("{:?}", x);
+
+    //     // let (mean, std_dev) = calculate_avg_price_and_std_dev(&jupiter_quotes, &sol_token);
+
+    //     // println!("{:?} {:?}", mean, std_dev);
     //     // for q in jupiter_quotes {
     //     //     println!("{:?}", estimate_price_from_quote(&q, &sol_token));
     //     //     println!("{:?}", q);
