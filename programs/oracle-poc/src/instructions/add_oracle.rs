@@ -32,11 +32,16 @@ pub struct AddOracle<'info> {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AddOracleParams {
     pub name: String,
+    pub quote_size_usdc_native: u64,
 }
 
 pub fn add_oracle(ctx: Context<AddOracle>, params: AddOracleParams) -> anchor_lang::Result<()> {
     let oracle_container = &mut ctx.accounts.oracle_container.load_mut()?;
-    oracle_container.add_oracle(&params.name, ctx.accounts.oracle_mint.key())?;
+    oracle_container.add_oracle(
+        &params.name,
+        ctx.accounts.oracle_mint.key(),
+        params.quote_size_usdc_native,
+    )?;
     msg!("added oracle: {:?}", params);
     Ok(())
 }

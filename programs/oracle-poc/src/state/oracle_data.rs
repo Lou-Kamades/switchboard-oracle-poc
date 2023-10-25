@@ -9,15 +9,16 @@ use crate::OracleError;
 pub struct OracleData {
     pub last_update_slot: u64,
     pub price: f64,
+    pub quote_size_usdc_native: u64,
     pub mint: Pubkey,
     pub standard_deviation: f64,
-    pub recent_prices: [f64; 16],
+    pub recent_prices: [f64; 16], // unnecessary?
     pub name: [u8; 16],
     pub recent_price_index: u8,
     pub padding: [u8; 7],
 }
-const_assert_eq!(size_of::<OracleData>(), 8 + 8 + 32 + 8 + 128 + 16 + 8);
-const_assert_eq!(size_of::<OracleData>(), 208);
+const_assert_eq!(size_of::<OracleData>(), 8 + 8 + 8 + 32 + 8 + 128 + 16 + 8);
+const_assert_eq!(size_of::<OracleData>(), 216);
 const_assert_eq!(size_of::<OracleData>() % 8, 0);
 
 impl OracleData {
@@ -29,6 +30,15 @@ impl OracleData {
         self.recent_price_index = (self.recent_price_index + 1) % 16;
         self.recent_prices[self.recent_price_index as usize] = new_price;
         self.standard_deviation = self.calc_std_deviation();
+        Ok(())
+    }
+
+    pub fn set_quote_size(&mut self, quote_size_usdc_native: u64) -> Result<()> {
+        require!(
+            quote_size_usdc_native > 1_000_000,
+            OracleError::InvalidOracleQuoteSize
+        );
+        self.quote_size_usdc_native = quote_size_usdc_native;
         Ok(())
     }
 

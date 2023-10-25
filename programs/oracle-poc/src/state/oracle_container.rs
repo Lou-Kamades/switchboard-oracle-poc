@@ -19,11 +19,16 @@ const_assert_eq!(
     size_of::<OracleContainer>(),
     size_of::<OracleData>() * 16 + 16
 );
-const_assert_eq!(size_of::<OracleContainer>(), 3344); // PDA limit is 10KB, we can go up to 10MB if we use an on-curve account.
+const_assert_eq!(size_of::<OracleContainer>(), 3472); // PDA limit is 10KB, we can go up to 10MB if we use an on-curve account.
 const_assert_eq!(size_of::<OracleContainer>() % 8, 0);
 
 impl OracleContainer {
-    pub fn add_oracle(&mut self, oracle_name: &str, oracle_mint: Pubkey) -> Result<()> {
+    pub fn add_oracle(
+        &mut self,
+        oracle_name: &str,
+        oracle_mint: Pubkey,
+        quote_size_usdc_native: u64,
+    ) -> Result<()> {
         let index = self.num_oracles;
         let oracle_name_bytes = name_from_str(oracle_name)?;
         require!(index < 15, OracleError::OracleContainerFull);
@@ -34,6 +39,7 @@ impl OracleContainer {
 
         self.oracles[index as usize].name = oracle_name_bytes;
         self.oracles[index as usize].mint = oracle_mint;
+        self.oracles[index as usize].quote_size_usdc_native = quote_size_usdc_native;
         self.num_oracles += 1;
         Ok(())
     }
@@ -62,6 +68,21 @@ impl OracleContainer {
         oracle.update(new_price, slot)?;
         Ok(())
     }
+
+    pub fn set_oracle_quote_size(
+        &mut self,
+        oracle_name: &str,
+        quote_size_usdc_native: u64,
+    ) -> Result<()> {
+        let oracle_name_bytes = name_from_str(oracle_name)?;
+        let oracle = self
+            .oracles
+            .iter_mut()
+            .find(|o| o.name == oracle_name_bytes)
+            .ok_or(OracleError::OracleNotFound)?;
+        oracle.set_quote_size(quote_size_usdc_native)?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -73,11 +94,17 @@ mod tests {
         let mut oracle_container = OracleContainer::default();
         let name = "TEST".to_string();
         let key = Pubkey::new_unique();
+        let quote_size = 2_000_000;
 
-        oracle_container.add_oracle(&name, key).unwrap();
+        oracle_container.add_oracle(&name, key, quote_size).unwrap();
         assert_eq!(
             oracle_container.oracles[0].name,
             name_from_str(&name).unwrap()
+        );
+        assert_eq!(oracle_container.oracles[0].mint, key);
+        assert_eq!(
+            oracle_container.oracles[0].quote_size_usdc_native,
+            quote_size
         );
     }
 
@@ -86,9 +113,10 @@ mod tests {
         let mut oracle_container = OracleContainer::default();
         let name = "TEST".to_string();
         let key = Pubkey::new_unique();
+        let quote_size = 2_000_000;
 
-        oracle_container.add_oracle(&name, key).unwrap();
-        let res = oracle_container.add_oracle(&name, key);
+        oracle_container.add_oracle(&name, key, quote_size).unwrap();
+        let res = oracle_container.add_oracle(&name, key, quote_size);
 
         assert!(res.is_err());
         assert_eq!(res.err().unwrap(), OracleError::OracleAlreadyAdded.into());
@@ -97,6 +125,7 @@ mod tests {
     #[test]
     pub fn test_add_oracle_container_full() {
         let mut oracle_container = OracleContainer::default();
+        let quote_size = 2_000_000;
         let a = "a".to_string();
         let b = "b".to_string();
         let c = "c".to_string();
@@ -116,24 +145,47 @@ mod tests {
 
         let key = Pubkey::new_unique();
 
-        oracle_container.add_oracle(&a, key).unwrap();
-        oracle_container.add_oracle(&b, key).unwrap();
-        oracle_container.add_oracle(&c, key).unwrap();
-        oracle_container.add_oracle(&d, key).unwrap();
-        oracle_container.add_oracle(&e, key).unwrap();
-        oracle_container.add_oracle(&f, key).unwrap();
-        oracle_container.add_oracle(&g, key).unwrap();
-        oracle_container.add_oracle(&h, key).unwrap();
-        oracle_container.add_oracle(&i, key).unwrap();
-        oracle_container.add_oracle(&j, key).unwrap();
-        oracle_container.add_oracle(&k, key).unwrap();
-        oracle_container.add_oracle(&l, key).unwrap();
-        oracle_container.add_oracle(&m, key).unwrap();
-        oracle_container.add_oracle(&n, key).unwrap();
-        oracle_container.add_oracle(&o, key).unwrap();
-        let res = oracle_container.add_oracle(&p, key);
+        oracle_container.add_oracle(&a, key, quote_size).unwrap();
+        oracle_container.add_oracle(&b, key, quote_size).unwrap();
+        oracle_container.add_oracle(&c, key, quote_size).unwrap();
+        oracle_container.add_oracle(&d, key, quote_size).unwrap();
+        oracle_container.add_oracle(&e, key, quote_size).unwrap();
+        oracle_container.add_oracle(&f, key, quote_size).unwrap();
+        oracle_container.add_oracle(&g, key, quote_size).unwrap();
+        oracle_container.add_oracle(&h, key, quote_size).unwrap();
+        oracle_container.add_oracle(&i, key, quote_size).unwrap();
+        oracle_container.add_oracle(&j, key, quote_size).unwrap();
+        oracle_container.add_oracle(&k, key, quote_size).unwrap();
+        oracle_container.add_oracle(&l, key, quote_size).unwrap();
+        oracle_container.add_oracle(&m, key, quote_size).unwrap();
+        oracle_container.add_oracle(&n, key, quote_size).unwrap();
+        oracle_container.add_oracle(&o, key, quote_size).unwrap();
+        let res = oracle_container.add_oracle(&p, key, quote_size);
 
         assert!(res.is_err());
         assert_eq!(res.err().unwrap(), OracleError::OracleContainerFull.into());
+    }
+
+    #[test]
+    pub fn test_set_oracle_quote_size() {
+        let mut oracle_container = OracleContainer::default();
+        let name = "TEST".to_string();
+        let key = Pubkey::new_unique();
+        let quote_size = 2_000_000;
+        let new_quote_size = 4_000_000;
+
+        oracle_container.add_oracle(&name, key, quote_size).unwrap();
+        assert_eq!(
+            oracle_container.oracles[0].quote_size_usdc_native,
+            quote_size
+        );
+
+        oracle_container
+            .set_oracle_quote_size(&name, new_quote_size)
+            .unwrap();
+        assert_eq!(
+            oracle_container.oracles[0].quote_size_usdc_native,
+            new_quote_size
+        );
     }
 }

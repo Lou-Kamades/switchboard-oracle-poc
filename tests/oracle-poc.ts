@@ -115,7 +115,7 @@ describe("oracle-poc", () => {
 
   it("Can add an oracle", async () => {
     const signature = await program.methods
-      .addOracle({ name: ORACLE_NAME })
+      .addOracle({ name: ORACLE_NAME, quoteSizeUsdcNative: new anchor.BN(2_000_000) })
       .accounts({
         oracleContainer,
         oracleMint: mintPubkey,
@@ -127,7 +127,7 @@ describe("oracle-poc", () => {
     console.log(`Add Oracle: ${signature}`);
   });
 
-  it("Can update an oracle", async () => {
+  it("Can update an oracle's price", async () => {
     const signature = await program.methods
       .updateOracle({
         price: 11.1,
@@ -142,5 +142,21 @@ describe("oracle-poc", () => {
       .rpc();
 
     console.log(`Update Oracle: ${signature}`);
+  });
+
+  it("Can update an oracle's quote size", async () => {
+    const signature = await program.methods
+      .setOracleQuoteSize({
+        oracleName: ORACLE_NAME,
+        quoteSizeUsdcNative: new anchor.BN(3_000_000)
+      })
+      .accounts({
+        oracleContainer,
+        program: programStatePubkey,
+        authority: provider.wallet.publicKey,
+      })
+      .rpc();
+
+    console.log(`Set Oracle Quote Size: ${signature}`);
   });
 });

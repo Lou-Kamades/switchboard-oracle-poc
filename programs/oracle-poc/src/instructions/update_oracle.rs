@@ -31,7 +31,7 @@ pub struct UpdateOracle<'info> {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateOracleParams {
     pub price: f64,
-    pub oracle_name: String
+    pub oracle_name: String,
 }
 
 pub fn update_oracle(

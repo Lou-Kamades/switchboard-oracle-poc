@@ -37,6 +37,14 @@ pub mod oracle_poc {
         instructions::update_oracle(ctx, params)?;
         Ok(())
     }
+
+    pub fn set_oracle_quote_size(
+        ctx: Context<SetOracleQuoteSize>,
+        params: SetOracleQuoteSizeParams,
+    ) -> anchor_lang::Result<()> {
+        instructions::set_oracle_quote_size(ctx, params)?;
+        Ok(())
+    }
 }
 
 pub fn name_from_str(name: &str) -> Result<[u8; 16]> {
@@ -67,4 +75,7 @@ pub enum OracleError {
 
     #[msg("Cannot update oracle with a price that is <= 0")]
     InvalidOraclePrice,
+
+    #[msg("Cannot set oracle quote size to be less than $1")]
+    InvalidOracleQuoteSize,
 }
